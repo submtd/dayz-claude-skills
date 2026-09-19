@@ -28,7 +28,8 @@ Updating is `git pull` in this repo — installed plugins follow the source.
 
 | Skill | Covers |
 |---|---|
-| `dayz-cfggameplay` | `cfggameplay.json`: build anywhere, base/container damage, stamina, spawn gear presets, object spawners, player restricted areas and teleports, seasonal temperatures, lighting, hit indicators, map and nav ownership, weapon obstruction, drowning, inertia, boat decay. Includes a validator. |
+| `dayz-cfggameplay` | `cfggameplay.json`: build anywhere, base/container damage, raid windows, stamina, spawn gear presets, object spawners, fast travel, seasonal temperatures, lighting, hit indicators, map and nav ownership, weapon obstruction, drowning, inertia, boat decay. Includes a validator. |
+| `dayz-globals` | `db/globals.xml`: loot condition, cleanup and corpse lifetimes, loot respawn rates, territory flag refresh, idle mode, session timers, infected and animal caps, food decay. Its validator checks the cross-file pairs against `cfgspawnabletypes.xml`, `db/types.xml` and `env/zombie_territories.xml`. |
 
 Each skill is a directory under `skills/` holding a `SKILL.md`, optional
 `references/` for heavy lookup material, and optional `scripts/` for tooling.
@@ -40,10 +41,17 @@ Vanilla mission files come from
 **Live Xbox servers track `master`, not a tagged release** — diff against
 `master`.
 
-Key semantics come from the
-[Bohemia wiki](https://community.bistudio.com/wiki/DayZ:Gameplay_Settings).
-Where the wiki and a shipped file disagree, the shipped file wins and the
-reference says so.
+Key semantics come from the Bohemia wiki —
+[Gameplay Settings](https://community.bistudio.com/wiki/DayZ:Gameplay_Settings)
+and [Central Economy Configuration](https://community.bistudio.com/wiki/DayZ:Central_Economy_Configuration).
+**The wiki has been wrong or inverted in seven places so far**, so where it
+disagrees with a shipped file, the shipped file wins and the reference says so.
+
+For behavior the wiki describes vaguely or gets backwards, read the engine:
+[`BohemiaInteractive/DayZ-Script-Diff`](https://github.com/BohemiaInteractive/DayZ-Script-Diff)
+publishes the game scripts. Searching a `CfgGameplayHandler` accessor or a
+`GetCEGlobal*` call name finds every consumer, and has settled several
+questions the wiki could not.
 
 ## Adding a skill
 
