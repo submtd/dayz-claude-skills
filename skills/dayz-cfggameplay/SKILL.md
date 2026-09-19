@@ -9,9 +9,25 @@ Server-side gameplay tunables, read from the **mission folder** at server start.
 Vanilla source: `DZ\worlds\<map>\ce\cfggameplay.json`, mirrored at
 `BohemiaInteractive/DayZ-Central-Economy` on GitHub.
 
-**These servers are Xbox. Console DayZ has no mod support**, so this file plus
-the mission tree is the entire customization surface. "Use a mod" is never an
-answer here.
+**These servers are Xbox, hosted on Nitrado** — the only way to run a custom
+Xbox server. Two consequences shape everything below.
+
+**1. Console DayZ has no mod support.** This file plus the mission tree is the
+entire customization surface. "Use a mod" is never an answer here.
+
+**2. `init.c` is inert.** Nitrado loads its own `init.c` and never reads yours.
+Nothing you put in it takes effect — not `StartingEquipSetup`, not
+`CreateCharacter`, not anything. **Any advice that routes through `init.c` is
+PC advice and does not apply.** Most DayZ documentation, including Bohemia's,
+assumes `init.c` works; on Xbox it does not, which makes `cfggameplay.json`
+carry work it was never meant to carry alone.
+
+**[unverified]** The file probably still needs to be present for the server to
+boot, even though it is ignored. Do not delete it to find out.
+
+**[unverified]** `init.c` is believed to be the *only* mission file Nitrado
+overrides this way. If a setting in some other file mysteriously does nothing,
+that belief is the thing to re-test.
 
 ## Never answer from memory
 
@@ -204,9 +220,12 @@ servers track **`master`**, not a tagged release — diff against `master`.
 - **One Life's guiding policy is vanilla-as-possible.** Settings it once ran and
   reverted (`disablePersonalLight`, `disableRespawnInUnconsciousness`) were
   dropped as policy, not because they misbehaved.
-- **One Life uses vanilla spawn gear** plus `StartingEquipSetup` in `init.c`.
-  **Adding `spawnGearPresetFiles` would silently disable that code.** Don't;
-  edit `init.c`.
+- **One Life has vanilla spawn gear because nothing sets otherwise.** Its
+  `init.c` contains a `StartingEquipSetup`, but that file is inert on Nitrado —
+  the vanilla gear comes from Nitrado's own `init.c`. To change spawn gear
+  there, `spawnGearPresetFiles` is the only route; editing `init.c` does
+  nothing. (The repo's own `CLAUDE.md` describes the gear as coming from
+  `init.c`; that is misleading.)
 - **Clan Wars adds**: scheduled `disableBaseDamage`,
   `disableRespawnInUnconsciousness`, zeroed stamina modifiers with
   `staminaMinCap: 100.0`, `shockRefillSpeedUnconscious: 5.0`, all three `MapData`
@@ -227,7 +246,7 @@ servers track **`master`**, not a tagged release — diff against `master`.
 | Right key, wrong nesting depth | Same — parses, does nothing |
 | `disableColdAreaPlacementCheck` on Chernarus | Ignored; that map wants `...BuildingCheck` |
 | Referenced `./custom/*.json` not uploaded | Boot-time failure |
-| Adding `spawnGearPresetFiles` on One Life | Silently kills `init.c` spawn gear |
+| Editing `init.c` on a Nitrado/Xbox server | Nothing happens — Nitrado loads its own |
 | Changing `lightingConfig` in `serverDZ.cfg` | Overridden by this file |
 | `ignoreNavItemsOwnership: true` with `displayNavInfo: false` | Legend stays hidden |
 | Parse-and-reserialize | Unreviewable diff, reformatted file |

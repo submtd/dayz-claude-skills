@@ -214,10 +214,14 @@ Preset file shape (Clan Wars' `custom/loadout.json`):
 - `discreteUnsortedItemSets` is the sibling field for cargo rather than
   attachment slots.
 
-**⚠ It overrides `StartingEquipSetup()` in `init.c`.** Adding this key to a
-server that sets gear in `init.c` silently disables that code — no error, the
-gear just changes. **One Life sets fresh-spawn gear in `init.c` and has no
-`spawnGearPresetFiles` key.** Do not add one there; edit `init.c`.
+**On PC this overrides `StartingEquipSetup()` in `init.c`** — adding the key
+to a server that sets gear there silently disables that code.
+
+**On Nitrado/Xbox there is nothing to override: `init.c` is inert.** Nitrado
+loads its own, so `spawnGearPresetFiles` is the **only** way to customise
+fresh-spawn gear. That is why Clan Wars uses it and why One Life, which does
+not, gets vanilla gear regardless of the `StartingEquipSetup` sitting in its
+`init.c`.
 
 It also **completely overrides character spawning**, including the character
 built in the main menu.

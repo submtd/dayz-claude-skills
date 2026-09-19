@@ -20,11 +20,17 @@ on inference, are marked **[unverified]**. Do not promote one to fact.
 Script-source findings reflect one game version. After a major patch, a key
 marked dead or narrow is worth re-checking.
 
-## Context: console has no mods
+## Context: Xbox on Nitrado
 
-These servers are Xbox. **Console DayZ has no mod support**, so
-`cfggameplay.json` plus the mission files are the *entire* customization
-surface. A PC answer that says "use a mod for that" is not an answer here.
+These servers are Xbox, hosted on Nitrado — the only way to run a custom Xbox
+server. Two facts constrain every answer:
+
+- **Console DayZ has no mod support.** `cfggameplay.json` plus the mission
+  files are the *entire* customization surface. A PC answer that says "use a
+  mod for that" is not an answer here.
+- **`init.c` is inert** — Nitrado loads its own and never reads yours, so work
+  Bohemia expected `init.c` to do lands on `cfggameplay.json` instead. Full
+  detail and caveats in `SKILL.md`.
 
 ## Nesting tree
 
@@ -192,8 +198,9 @@ Paths to Player Gear Spawn preset files. Absent or `[]` = vanilla spawn gear.
   preset, per-slot `discreteItemSets` variant, and `discreteUnsortedItemSets`.
   Higher is more likely. With one preset and one option per slot, every
   `spawnWeight` in the file is inert.
-- **It overrides `StartingEquipSetup()` in `init.c`.** Adding this key to a
-  server that sets gear in `init.c` silently disables that code. See
+- **On PC it overrides `StartingEquipSetup()` in `init.c`**, silently
+  disabling that code. **On Nitrado/Xbox `init.c` is inert**, so there is
+  nothing to override and this key is the only route to custom spawn gear. See
   [Spawning Gear Configuration](https://community.bistudio.com/wiki/DayZ:Spawning_Gear_Configuration).
 - It **completely overrides character spawning**, including the character built
   in the main menu.
