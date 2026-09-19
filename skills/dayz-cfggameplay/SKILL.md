@@ -1,6 +1,6 @@
 ---
 name: dayz-cfggameplay
-description: Use when working with a DayZ server's cfggameplay.json or gameplay settings — build anywhere, base/container damage, stamina, spawn gear presets, object spawners, player restricted areas, teleports, seasonal temperatures, lighting config, hit indicators, map and nav ownership, weapon obstruction, drowning, boat decay, inertia — or when a gameplay settings change did not take effect in game.
+description: Use when working with a DayZ server's cfggameplay.json or gameplay settings — build anywhere, base/container damage, raid windows, stamina, spawn gear presets, object spawners, player restricted areas, fast travel, seasonal temperatures, lighting config, hit indicators, map and nav ownership, weapon obstruction, drowning, boat decay, inertia — or when a gameplay settings change did not take effect in game.
 ---
 
 # DayZ cfggameplay.json
@@ -9,16 +9,19 @@ Server-side gameplay tunables, read from the **mission folder** at server start.
 Vanilla source: `DZ\worlds\<map>\ce\cfggameplay.json`, mirrored at
 `BohemiaInteractive/DayZ-Central-Economy` on GitHub.
 
+**These servers are Xbox. Console DayZ has no mod support**, so this file plus
+the mission tree is the entire customization surface. "Use a mod" is never an
+answer here.
+
 ## Never answer from memory
 
-Every key name, default, and nesting path in this file **must** come from
-`references/keys.md`, not from recall. This is not a style preference — an agent
-tested on six routine questions about this file invented a `"BaseBuilding"`
-section, a `territoryFlagRequired` key, a `"PlayerStamina": {"enabled": false}`
-block and an `allowFrozenGroundPlanting` key. **None of them exist.** It also
-placed the file in the profile directory instead of the mission folder. The
-answers were fluent, specific, and wrong, and a wrong key name here is not a
-no-op — see "Silent failure" below.
+Every key name, default, and nesting path **must** come from
+`references/keys.md`, not from recall. An agent tested on six routine questions
+about this file invented a `"BaseBuilding"` section, a `territoryFlagRequired`
+key, a `"PlayerStamina": {"enabled": false}` block and an
+`allowFrozenGroundPlanting` key. **None exist.** It also put the file in the
+profile directory instead of the mission folder. Fluent, specific, wrong — and
+a wrong key name here is silently ignored rather than rejected.
 
 **Before naming any key, read `references/keys.md`.** Before writing an edit,
 read the server's actual file. No exceptions:
@@ -29,21 +32,24 @@ read the server's actual file. No exceptions:
 - Not for "I'll write it and validate after." Validation catches malformed
   JSON, not a plausible key the engine ignores.
 
+**This applies to behavior, not just names.** The wiki is wrong or inverted in
+several documented places, and several keys do far less than their names imply.
+`keys.md` marks what was read from engine source **[source]** and what rests on
+inference **[unverified]**. Do not promote an `[unverified]` claim to fact, and
+do not fill a gap the reference explicitly leaves open.
+
 ## Read this before your first edit
 
 **1. `enableCfgGameplayFile = 1;` must be in `server.cfg`.** Without it the
-server never reads the file at all. This is the first thing to check when a
-change "did nothing," and it is invisible from inside the mission folder.
+server never reads the file at all. First thing to check when a change "did
+nothing," and invisible from inside the mission folder.
 
 **2. The file lives in the mission folder**, not the profile directory —
 alongside `init.c` and `cfgeconomycore.xml`.
 
 **3. Silent failure is the default.** Malformed JSON, an unknown key, or a key
 at the wrong nesting depth produces no error the admin will see. The engine
-falls back to built-in defaults and the server boots looking healthy. Anything
-undefined inside a data class is read as zero, which is why
-`hitDirectionOverrideEnabled` exists — it is how the engine tells "0 because
-you set it" from "0 because the block never loaded."
+falls back to defaults and the server boots looking healthy.
 
 **4. Key names differ between maps.** Bohemia's own shipped files disagree:
 
@@ -54,29 +60,29 @@ you set it" from "0 because the block never loaded."
 | `dayzOffline.sakhal` | `disableColdAreaPlacementCheck` |
 
 The wiki documents only `disableColdAreaPlacementCheck`. **Use whichever name
-your map's vanilla file ships** — copy it from upstream rather than typing it.
-`playerRestrictedAreaFiles` and `lightingConfig: 2` likewise ship only on Sakhal.
+your map's vanilla file ships.** `playerRestrictedAreaFiles` and
+`lightingConfig: 2` likewise ship only on Sakhal.
 
-**5. A deploy is not a live change.** Uploading the file puts it in place; the
+**5. A deploy is not a live change.** Uploading puts the file in place; the
 server reads it on restart. Report a change as shipped only after the restart.
 
-**6. Two things here are genuinely unknown**, and `references/keys.md` marks
-them as such: what the engine does with a wrong `version`, and what
-`lightingConfig: 2` (Sakhal's vanilla value) renders. A gap flagged as unknown
-is not an invitation to fill it in — say it is undocumented.
+**6. Some settings are overridden from outside this file.**
+`WorldsData.lightingConfig` overrides `serverDZ.cfg`'s, and
+`MapData.displayNavInfo: false` defeats `ignoreNavItemsOwnership`. A setting
+that "does nothing" may be losing a precedence fight.
 
 ## Routing
 
 | Goal | Section | Reference |
 |---|---|---|
-| Build anywhere / ignore placement checks | `BaseBuildingData` | `references/recipes.md` § Build anywhere |
-| Stop base or tent/barrel damage | `GeneralData` | `keys.md` § GeneralData |
+| Build anywhere | `BaseBuildingData` | `recipes.md` § Build anywhere |
+| Open or close a raid window | `GeneralData` | `recipes.md` § Raid windows |
 | Unlimited or tuned stamina | `PlayerData.StaminaData` | `recipes.md` § Stamina |
 | Custom fresh-spawn loadout | `PlayerData.spawnGearPresetFiles` | `recipes.md` § Spawn gear |
-| Place map objects | `WorldsData.objectSpawnersArr` | `recipes.md` § Object spawners |
-| Restricted zones / teleports | `WorldsData.playerRestrictedAreaFiles` | `recipes.md` § Restricted areas |
+| Place map objects, supply drops | `WorldsData.objectSpawnersArr` | `recipes.md` § Object spawners |
+| Fast travel, restricted zones | `WorldsData.playerRestrictedAreaFiles` | `recipes.md` § Fast travel |
 | Seasonal temperature curve | `WorldsData.environment*Temps` | `recipes.md` § Temperatures |
-| Night brightness | `WorldsData.lightingConfig` | `keys.md` § WorldsData |
+| Darker nights | `lightingConfig` + `disablePersonalLight` | `recipes.md` § Darker nights |
 | Map / compass / GPS without the item | `MapData` | `recipes.md` § Map QoL |
 | Hit direction indicator | `UIData.HitIndicationData` | `keys.md` § UIData |
 | Unconscious respawn, respawn dialog | `GeneralData` | `keys.md` § GeneralData |
@@ -86,14 +92,38 @@ is not an invitation to fill it in — say it is undocumented.
 Full nesting tree, every key, type, vanilla default and per-map variance:
 **`references/keys.md`** (schema `version: 123`).
 
-## Editing rules
+## Things that are not what they look like
+
+Documented in full in `keys.md`; listed here because each one has already cost
+someone an afternoon.
+
+- **`disableIsPlacementPermittedCheck` has nothing to do with territory.** It
+  skips the item's own `CanBePlaced` rule and affects only tents, fireplaces,
+  garden plots and traps. It does nothing for walls, gates, fences or
+  watchtowers. Vanilla DayZ has **no territory build-permission system** to
+  disable.
+- **`disableDistanceCheck` is dead config** — its only consumer is commented
+  out in Bohemia's source.
+- **`disablePerformRoofCheck` affects watchtowers only.**
+- **`disableIsClippingRoofCheck` and `disableIsBaseViableCheck` are client-only**
+  — the server short-circuits both in multiplayer.
+- **`disableRespawnDialog` is about the character, not the spawn point.** It
+  picks custom vs random *character*; `true` forces random.
+- **`playerRestrictedAreaFiles` triggers on login, not entry.** Walking into a
+  PRA box does nothing at all.
+- **`DrowningData` is effectively dead** — you cannot swim underwater, so
+  drowning only fires on geometry edge cases.
+- **`HitIndicationData` is dormant** until `hitDirectionOverrideEnabled: true`.
+- **`displayNavInfo`'s wiki description is inverted.** `true` shows the legend.
+- **`version` is never touched** — copy your map's upstream value.
+
+## Editing safely
 
 **Splice, don't reserialize.** Never `json.load` → edit → `json.dump`. The live
 files are tab-indented with a meaningful key order; a round trip rewrites the
-whole file and makes the diff unreviewable. Change the bytes you mean to change
-and leave the rest identical. (Clan Wars' bot does exactly this in
-`apps/bot/src/cfggameplay.ts` — textual splice, guarded by a parse before and a
-read-back after.)
+whole file and makes the diff unreviewable. Clan Wars' bot does this correctly
+in `apps/bot/src/cfggameplay.ts` — a textual splice guarded by a parse before
+and a read-back after.
 
 **Read the value back after editing.** A key spliced at the wrong nesting depth
 still parses. Parsing proves the file loads; only re-reading
@@ -105,9 +135,58 @@ still parses. Parsing proves the file loads; only re-reading
 python3 skills/dayz-cfggameplay/scripts/validate.py /path/to/mission/cfggameplay.json
 ```
 
-Checks JSON parses, `version` is present, every key is known for the map, and
-every `objectSpawnersArr` / `playerRestrictedAreaFiles` / `spawnGearPresetFiles`
-path resolves on disk. A missing referenced file is a boot-time failure.
+Checks JSON parses, `version` is present, every key is known for the map,
+positional arrays are the right length, and every referenced `custom/*.json`
+exists and parses.
+
+**Missing referenced files do not fail the boot.** All three path arrays log
+via `ErrorEx` and carry on, so the server starts cleanly and silently lacks
+the feature — and one bad `spawnGearPresetFiles` entry disables *every*
+preset. The validator and the RPT are the only ways to catch this.
+
+## Diagnosing "I changed it and nothing happened"
+
+Work down this list. Each step is cheaper than the one after it.
+
+1. **`enableCfgGameplayFile = 1;` in `server.cfg`?** Nothing below matters
+   without it.
+2. **Did the server restart** since the file was uploaded?
+3. **Run the validator.** It catches malformed JSON, unknown keys, wrong-length
+   arrays and missing referenced files — none of which the server reports.
+4. **Grep the RPT.** The engine logs load failures there and nowhere else:
+   - `Object spawner failed to spawn <name>` — bad class name or p3d path.
+   - `Object spawner: invalid path` — p3d outside the allowed directories.
+   - `ErrorEx` lines near startup — a referenced spawner, PRA or spawn-gear
+     file that would not load. **The server boots normally either way.**
+5. **Check precedence.** `serverDZ.cfg`'s `lightingConfig` loses to this file's;
+   `displayNavInfo: false` defeats `ignoreNavItemsOwnership`.
+6. **Check the key is real for your map** — `keys.md` lists several that do
+   nothing, do far less than their name implies, or are spelled differently on
+   Sakhal.
+7. **Smoke test the file is read at all:** set
+   `MapData.displayPlayerPosition: true`, restart, open the map. It is the
+   fastest visible confirmation.
+
+**Fast travel has no RPT breadcrumb for a *working* pad** — the only test is to
+stand in the box, log out and log back in. A pad that does nothing is usually a
+file that failed to load (step 4) or a box the player was not actually inside.
+
+## Resolving behavior the wiki gets wrong
+
+When the wiki is vague or self-contradictory, read the engine — the scripts are
+public at `BohemiaInteractive/DayZ-Script-Diff`:
+
+```sh
+gh api -X GET search/code -f q='GetDisableSomeCheck repo:BohemiaInteractive/DayZ-Script-Diff' \
+  --jq '.items[]? | .path'
+gh api "repos/BohemiaInteractive/DayZ-Script-Diff/contents/<path>" --jq '.content' | base64 -d
+```
+
+Config flags are read through `CfgGameplayHandler` accessors in
+`scripts/3_game/cfggameplayhandler.c`; searching the accessor name finds every
+consumer. This is how `disableDistanceCheck` was found dead and
+`disableIsPlacementPermittedCheck` was found to have nothing to do with
+territory. Findings reflect one game version — re-check after a major patch.
 
 ## House conventions (One Life / Clan Wars)
 
@@ -116,22 +195,25 @@ servers track **`master`**, not a tagged release — diff against `master`.
 
 - **Referenced paths are `./custom/<name>.json`**, relative to the mission root.
   (Vanilla Sakhal uses `pra/warheadstorage.json` — no `./`. Both work.)
-- **Build-anywhere is on for every server.** All eleven `HologramData` checks and
-  all three `ConstructionData` checks are `true`. Note this also turns off
-  territory permission enforcement via `disableIsPlacementPermittedCheck`.
+- **Build-anywhere is on for every server.** All eleven `HologramData` checks
+  and all three `ConstructionData` checks are `true`.
 - **`BaseBuildingData` is the one block to re-apply by hand on an upstream
-  merge.** On One Life servers it is the *only* deviation from vanilla — every
-  other value, including the seasonal temperature curves and Sakhal's
-  `lightingConfig: 2`, is already vanilla-for-that-map. Do not "fix" those.
-- **Clan Wars adds**: `disableBaseDamage`, `disableRespawnInUnconsciousness`,
-  zeroed stamina modifiers with `staminaMinCap: 100.0`,
-  `shockRefillSpeedUnconscious: 5.0`, all three `MapData` QoL flags, a
-  `spawnGearPresetFiles` loadout, four object spawners, and 33 PRAs.
-- **Clan Wars uses PRAs as teleporters** — a small `PRABoxes` trigger volume
-  with a distant `safePositions3D`, so entering the box ejects the player to the
-  destination. One file per destination.
-- **One Life uses vanilla spawn gear** plus `StartingEquipSetup` in `init.c` —
-  it has no `spawnGearPresetFiles` key. Don't add one; change `init.c`.
+  merge.** On One Life it is the *only* deviation from vanilla — the seasonal
+  temperature curves and Sakhal's `lightingConfig: 2` are already
+  vanilla-for-that-map. Do not "fix" those.
+- **One Life's guiding policy is vanilla-as-possible.** Settings it once ran and
+  reverted (`disablePersonalLight`, `disableRespawnInUnconsciousness`) were
+  dropped as policy, not because they misbehaved.
+- **One Life uses vanilla spawn gear** plus `StartingEquipSetup` in `init.c`.
+  **Adding `spawnGearPresetFiles` would silently disable that code.** Don't;
+  edit `init.c`.
+- **Clan Wars adds**: scheduled `disableBaseDamage`,
+  `disableRespawnInUnconsciousness`, zeroed stamina modifiers with
+  `staminaMinCap: 100.0`, `shockRefillSpeedUnconscious: 5.0`, all three `MapData`
+  QoL flags, a `spawnGearPresetFiles` loadout, four object spawners, and 33
+  fast-travel PRAs.
+- **Clan Wars' bot toggles raid windows** by splicing `disableBaseDamage` — see
+  Editing safely.
 - Files in `custom/` are not automatically live. Clan Wars' `custom/` holds
   `admin-castle-explosives.json`, `admin-castle-flag-kit.json` and
   `flag-supplies.json` that no array references — they spawn nothing.
@@ -145,6 +227,10 @@ servers track **`master`**, not a tagged release — diff against `master`.
 | Right key, wrong nesting depth | Same — parses, does nothing |
 | `disableColdAreaPlacementCheck` on Chernarus | Ignored; that map wants `...BuildingCheck` |
 | Referenced `./custom/*.json` not uploaded | Boot-time failure |
+| Adding `spawnGearPresetFiles` on One Life | Silently kills `init.c` spawn gear |
+| Changing `lightingConfig` in `serverDZ.cfg` | Overridden by this file |
+| `ignoreNavItemsOwnership: true` with `displayNavInfo: false` | Legend stays hidden |
 | Parse-and-reserialize | Unreviewable diff, reformatted file |
 | Reporting "shipped" at deploy | Change is live only after restart |
-| `staminaMax` or `staminaMinCap` set to `0` | Bohemia documents this as producing unexpected results |
+| `staminaMax` or `staminaMinCap` set to `0` | Documented as producing unexpected results |
+| Diffing Livonia against Chernarus vanilla | False positives on the temperature curves |

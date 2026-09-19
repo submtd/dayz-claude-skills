@@ -245,7 +245,8 @@ def main():
             referenced.add(target)
             if not target.is_file():
                 errors.append(
-                    f"{path}: {entry} does not exist — the server fails at boot"
+                    f"{path}: {entry} does not exist — the server will boot "
+                    "anyway and silently lack the feature"
                 )
             else:
                 try:
@@ -268,10 +269,24 @@ def main():
                 + ", ".join(orphans)
             )
 
-    if flat.get("BaseBuildingData.HologramData.disableIsPlacementPermittedCheck"):
+    # Flags that are narrower or deader than their names suggest. Verified
+    # against BohemiaInteractive/DayZ-Script-Diff; see references/keys.md.
+    if flat.get("BaseBuildingData.ConstructionData.disableDistanceCheck"):
         notes.append(
-            "disableIsPlacementPermittedCheck is true — territory permission "
-            "enforcement is off, anyone can build in anyone's territory"
+            "disableDistanceCheck is true but does nothing — its only consumer "
+            "is commented out in Bohemia's source"
+        )
+    if flat.get("PlayerData.StaminaData.staminaKgToStaminaPercentPenalty") == 0:
+        notes.append(
+            "staminaKgToStaminaPercentPenalty is 0 — carried weight no longer "
+            "affects stamina, so staminaWeightLimitThreshold, staminaMinCap and "
+            "wetnessWeightModifiers are all inert"
+        )
+    if (flat.get("MapData.ignoreNavItemsOwnership")
+            and flat.get("MapData.displayNavInfo") is False):
+        errors.append(
+            "MapData.displayNavInfo is false, which overrides "
+            "ignoreNavItemsOwnership — the map legend stays hidden anyway"
         )
 
     label = f"{args.file}" + (f" (map: {mapname})" if mapname else "")
