@@ -1,0 +1,15 @@
+{
+  "name": "submtd-dayz",
+  "description": "DayZ server development skills: mission configuration, central economy, and server operations.",
+  "owner": {
+    "name": "Steve Manicdote",
+    "email": "harmeyersteve@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "dayz",
+      "source": "./",
+      "description": "Expert skills for DayZ server development: mission configuration, central economy, and server operations."
+    }
+  ]
+}
