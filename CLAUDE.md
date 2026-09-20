@@ -172,8 +172,16 @@ failure path.
 subagent for blunt feedback on gaps and ambiguity as well as answers. Act on
 the feedback; it has caught real holes both times.
 
-**7. Commit** with a message that says what was wrong and why, not just what
-changed.
+**7. Ship it through the workflow.** `main` is protected — keel blocks direct
+commits and pushes. Use `keel:start-work` to cut a `feature/*` branch, add an
+entry under `## [Unreleased]` in `CHANGELOG.md` (the gate checks the
+*committed* state, not the working tree), then `keel:finish-work` to open the
+PR, `keel:review`, and `keel:land`. Squash-merge into `main`.
+
+Write the commit message so it says what was **wrong** and why, not just what
+changed — the existing history is the model. CI runs `scripts/ci_check.py`,
+which will fail the PR if a skill's frontmatter `name` stops matching its
+directory or a validator stops running.
 
 ## Skill conventions
 

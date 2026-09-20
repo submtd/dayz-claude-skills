@@ -1,0 +1,14 @@
+{
+  "name": "ci",
+  "stacks": {
+    "python": {
+      "testCommand": [
+        "python3",
+        "scripts/ci_check.py"
+      ]
+    }
+  },
+  "pushBranches": [
+    "main"
+  ]
+}

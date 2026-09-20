@@ -1,0 +1,7 @@
+{
+  "name": "security",
+  "scanner": "gitleaks",
+  "pushBranches": [
+    "main"
+  ]
+}
