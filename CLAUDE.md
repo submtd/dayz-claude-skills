@@ -53,7 +53,12 @@ These have been confirmed by the operator. Do not re-derive or contradict them.
 - **Live Xbox servers track `master`**, not a tagged release. Diff against
   `master`.
 - **Servers restart every 2 hours.** This caps session-scoped countdowns;
-  persistent CE values are unaffected.
+  persistent CE values are unaffected. **A deployed file plus the next
+  restart is all it takes to go live** — no manual restart, no storage
+  wipe. But CE *effects* settle asymmetrically: raising a `nominal` shows
+  up fast, lowering one shows up slowly because the surplus must age out
+  through each item's lifetime. Do not judge a reduction after one
+  restart.
 - **Silent failure is the norm.** Unknown keys, wrong nesting, missing
   referenced files, wrong-length arrays — none of these error. The server
   boots clean and the feature is quietly absent. This is why every skill ships
@@ -101,12 +106,32 @@ The wiki is behind Cloudflare. `WebFetch` and curl get 403; use the
 `claude-in-chrome` tools, and expect the first read to return the challenge
 page — wait a few seconds and read again.
 
+**Coverage is thinner than it looks.** `DayZ:Central_Economy_Configuration`
+documents `globals.xml` and `cfgEconomyCore.xml` and stops — **there is no
+wiki page for `types.xml` at all**, and `Central_Economy_Tweaking` /
+`Central_Economy_Mission_Files` are both empty. Every per-element `types.xml`
+reference online is community-written. Do not spend a session hunting for the
+official one.
+
+**3b. Community console resources.** `github.com/scalespeeder` — ~251 repos of
+XML/JSON for DayZ servers, explicitly **PC and console**, so it respects the
+no-mods constraint. Cited by the operator as a good resource. The
+`extra_types.xml` files are the known-good list of valid classnames vanilla
+omits. Below shipped files in authority but above the wiki for anything
+console-specific.
+
 **4. The operator.** The only source for intent, live behavior, and anything
 Nitrado-specific. Ask rather than infer.
 
+**Item classnames have no authority below the operator.** They live in the
+game's `.cpp` configs, which are in neither GitHub repo. Engine source settles
+CE *behavior*, not the catalogue of items. A classname is confirmed by a
+published working list or an in-game test, and by nothing else — and a wrong
+one fails exactly like a right one that is mis-tiered.
+
 ## How to build a skill
 
-The process that produced the existing two. Follow it.
+The process that produced the existing three. Follow it.
 
 **1. Gather.** Read the live mission files, pull upstream vanilla for the
 matching map, and diff per map. Note which deviations are shared across servers
@@ -188,26 +213,45 @@ Recorded so they are not "fixed" by accident or repeated.
 - **`dayz-one-life/chernarus/CLAUDE.md:51`** says spawns use "vanilla gear plus
   `StartingEquipSetup` in `init.c`" — misleading, since `init.c` is inert. That
   repo has not been touched.
+- **Three defects ship in Bohemia's own `types.xml`** and are therefore
+  present on our servers too: `Crossbow_Black` has `quantmin 80`/`quantmax 0`
+  (Livonia, Sakhal); `BatteryCharger` has `min 18` > `nominal 13` (Sakhal);
+  `Firewood` has `crafted="1"` with a non-zero nominal, so it cannot spawn
+  (Livonia, inherited by Clan Wars). `dayz-types/scripts/validate.py` knows
+  these three by name and downgrades them to a tagged warning so an untouched
+  mission still exits 0. **Do not treat them as local drift.**
+- **Vanilla Livonia's `WinterMilitaryCoat_Greay` is a Bohemia typo.** All
+  three maps' `cfgspawnabletypes.xml` say `Grey`, as do Chernarus and Sakhal
+  `types.xml`. The coat has never spawned on vanilla Livonia. Clan Wars fixed
+  it; One Life still carries the typo.
+- **Clan Wars' `PartyTent*` ignore-list / `types.xml` overlap is intentional.**
+  Party tents are a known source of server lag and are not allowed to exist.
+  Flagged as a note by the validator; do not "resolve" it.
+- **One Life's `types.xml` is deliberately frozen** at the vanilla reset while
+  upstream `master` has moved on (mossy ghillies, `Tier4` on `PoliceVest`,
+  `deloot` changes). **Flag the gap; never auto-apply it.**
 
 ## Status
 
-**Done:** `dayz-cfggameplay`, `dayz-globals`.
+**Done:** `dayz-cfggameplay`, `dayz-globals`, `dayz-types`.
 
 **Next, in rough priority order:**
 
-1. **`db/types.xml`** — the common dependency. Both existing skills point at it
-   repeatedly: base part lifetimes, nominal/min, the economy that object
-   spawners bypass. Biggest single gap.
-2. **`mapgroupproto.xml`** — `<dispatch>` proxies, `<container>` categories,
-   `lootmax`, `value`/`usage` tiers, `flags`, `range`/`height`. The dispatch
-   mechanism is documented in `dayz-globals/references/cross-file.md`; the rest
-   of the file is undocumented here and none of it is obvious.
-3. **ADM/RPT parsing** — the unattributed-death trap is already recorded in
+1. **`mapgroupproto.xml`** — now the biggest single gap. `<dispatch>` proxies,
+   `<container>` categories, `lootmax`, `value`/`usage` tiers, `flags`,
+   `range`/`height`. The dispatch mechanism is documented in
+   `dayz-globals/references/cross-file.md`; the rest of the file is
+   undocumented here and none of it is obvious. **`dayz-types` now leans on it
+   in three places** — `usage`/`value`/`tag` matching against real loot
+   points, the `lootdispatch` category, and the custom-usage POI recipe in
+   `dayz-types/references/classnames.md`, which is the operator's technique
+   for putting strong loot in one building without map-wide inflation.
+2. **ADM/RPT parsing** — the unattributed-death trap is already recorded in
    `dayz-cfggameplay`. Clan Wars' `packages/adm-parser` and
    `packages/domain/src/death-verdict.ts` are worked solutions worth
    generalising.
-4. **Release and FTP deploy workflow** — `../../dayz-clan-wars/livonia/CLAUDE.md`
+3. **Release and FTP deploy workflow** — `../../dayz-clan-wars/livonia/CLAUDE.md`
    has real scar tissue in it: publishing a Release is what deploys, a tag
    alone ships nothing, and an undeployed tag is invisible without an audit.
-5. **`env/*_territories.xml`** — infected and animal zone tuning, the lever
+4. **`env/*_territories.xml`** — infected and animal zone tuning, the lever
    behind `ZombieMaxCount`.
