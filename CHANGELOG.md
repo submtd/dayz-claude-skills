@@ -5,6 +5,25 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **`dayz-mapgroups`** — skill for `mapgroupproto.xml` and `mapgrouppos.xml`:
+  where loot may sit inside a building type, how much fits, which buildings on
+  the map are lootable, usage routing, fixed-offset item placement via
+  `<dispatch>`/`<proxy>`, custom POIs and loot concentration, disabling loot at
+  one location, and loot-point thinning for server performance. Records that
+  loot tiers live in `areaflags.map` rather than in any mission XML, so
+  `<value>` on a surface building does nothing — and that the raster is
+  PC-authored but deploys to console fine.
+- `dayz-mapgroups` ships a validator that resolves `mapgrouppos.xml` group
+  names against `mapgroupproto.xml` **case-insensitively** (Bohemia's own
+  files rely on this; a case-sensitive check reports 6–11 orphans on every
+  untouched vanilla map), checks the proto vocabulary against
+  `cfglimitsdefinition.xml`, requires a `db/types.xml` registration for every
+  `<proxy type>`, and reports `stranded-usage` — types whose every usage has
+  zero placed capacity. Takes `--capacity` to print loot capacity and
+  saturation by usage.
+
 ## [0.1.0] - 2026-09-19
 
 ### Added
