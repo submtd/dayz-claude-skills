@@ -14,10 +14,7 @@ script.
 Cross-file checks run when the sibling files are present:
 
   * cfglimitsdefinition.xml -- every usage/value/category/tag name must exist
-  * db/types.xml            -- every <proxy type=...> needs a registration;
-                               usages carrying nominal need somewhere to spawn
-  * db/events.xml,
-    cfgEffectArea.json      -- whether the event-fed usages are actually live
+  * db/types.xml            -- every <proxy type=...> needs a registration
 
 What this script deliberately does NOT do:
 
@@ -28,6 +25,11 @@ What this script deliberately does NOT do:
     orphans on every untouched vanilla map.
   * guess at <point flags>. Only 16 and 32 are ever shipped and no source
     establishes what they mean; unknown values are reported, not interpreted.
+  * claim a usage is unreachable because no placed group carries it. Loot
+    routing has a second source this script cannot see: areaflags.map, a binary
+    raster that carries usage areas as well as tiers. Polana on Livonia is
+    mostly basic houses and spawns military loot because the area says so.
+    Capacity computed here is a LOWER BOUND, never a total.
 
 Exit status: 0 clean (warnings/notes allowed), 1 errors found, 2 could not run.
 """
@@ -65,17 +67,6 @@ VANILLA_UNREGISTERED_PROXIES = {
     "Offroad_02_Door_2_2_BeigeRust",
     "Offroad_02_Trunk_BeigeRust",
 }
-
-# ContaminatedArea legitimately has zero mapgroupproto capacity on every
-# vanilla map: its loot arrives through the contaminated-area event system, not
-# through building loot points. Zero capacity is only a fault once that system
-# is also switched off -- which the mission can do, and which this script can
-# see, so it is the one stranding worth failing a build over.
-CONTAMINATED_USAGE = "ContaminatedArea"
-
-# Other usages reach the world by routes this script does not model (seasonal
-# events, cargo, spawnable types). Report, do not fail.
-EVENT_FED_USAGES = {CONTAMINATED_USAGE, "Special"}
 
 # The only <point flags> values Bohemia ships. Meaning unestablished.
 KNOWN_POINT_FLAGS = {"16", "32"}
@@ -316,8 +307,11 @@ def check_proxy_registration(groups, mission, errors, warnings):
 def capacity_by_usage(groups, defaults, placed):
     """Capacity = group lootmax (the engine's ceiling) x instances placed.
 
-    A group with several usages contributes its full capacity to each, so these
-    over-attribute and are meaningful for before/after deltas, not as absolutes.
+    Two reasons this is not a total. A group with several usages contributes
+    its full capacity to each, so the columns over-attribute. And areaflags.map
+    grants usage by map area, independently of any building's <usage>, so real
+    capacity for a usage is at least this and often more. Use for before/after
+    deltas, never as an absolute.
     """
     info = {}
     for group in groups:
@@ -339,87 +333,40 @@ def capacity_by_usage(groups, defaults, placed):
     return per_usage, total
 
 
-def contaminated_areas_live(mission):
-    """Are the event-fed usages actually reachable in this mission?"""
-    areas = mission / "cfgEffectArea.json"
-    if areas.is_file():
-        try:
-            if json.loads(areas.read_text()).get("Areas"):
-                return True
-        except (json.JSONDecodeError, OSError):
-            return True          # unreadable: assume live rather than cry wolf
-    events = mission / "db" / "events.xml"
-    if events.is_file():
-        for event in load(events).findall("event"):
-            if "ontaminated" not in (event.get("name") or ""):
-                continue
-            active = event.findtext("active", "1").strip()
-            nominal = event.findtext("nominal", "0").strip()
-            if active != "0" and nominal != "0":
-                return True
-    return False
+def note_zero_capacity(groups, defaults, placed, mission, notes):
+    """Usages that types.xml allocates nominal to but no placed group carries.
 
-
-def check_stranded(groups, defaults, placed, mission, errors, warnings, notes):
-    """Types whose every usage has zero capacity, with nowhere else to go."""
+    Reported as information only. It is NOT evidence the loot is unreachable:
+    areaflags.map carries usage areas as well as tiers and grants them by map
+    position, independently of any building's <usage>. Polana on Livonia is
+    mostly basic houses and spawns military loot for exactly that reason. This
+    script cannot read the raster, so it can never prove the negative.
+    """
     types_path = mission / "db" / "types.xml"
     if not types_path.is_file():
         return
     per_usage, _ = capacity_by_usage(groups, defaults, placed)
-
-    event_children = set()
-    events = mission / "db" / "events.xml"
-    if events.is_file():
-        for child in load(events).iter("child"):
-            if child.get("type"):
-                event_children.add(child.get("type"))
-
-    live = contaminated_areas_live(mission)
-    stranded = collections.defaultdict(list)
+    wanted = collections.Counter()
     for entry in load(types_path).findall("type"):
-        name = entry.get("name")
-        if name in event_children:
-            continue
-        nominal = entry.findtext("nominal", "0").strip() or "0"
         try:
-            nominal = int(nominal)
+            count = int(entry.findtext("nominal", "0").strip() or "0")
         except ValueError:
             continue
-        if nominal <= 0:
+        if count <= 0:
             continue
-        usages = [u.get("name") for u in entry.findall("usage")]
-        if not usages:
-            continue                      # cargo/event/spawnable only -- not ours
-        if any(per_usage.get(u, 0) > 0 for u in usages):
-            continue
-        if live and any(u in EVENT_FED_USAGES for u in usages):
-            continue
-        stranded[tuple(sorted(usages))].append((name, nominal))
-
-    for usages, items in sorted(stranded.items()):
-        budget = sum(n for _, n in items)
-        listed = ", ".join(f"{n} ({v})" for n, v in sorted(items, key=lambda kv: -kv[1]))
-        contaminated = CONTAMINATED_USAGE in usages
-        reason = ("the contaminated-area events are switched off" if contaminated
-                  else "no placed group carries that usage")
-        message = (f"stranded-usage: {len(items)} type(s) carry only usage "
-                   f"{'/'.join(usages)} and {reason}, so {budget} nominal cannot "
-                   f"spawn anywhere: {listed}")
-        if contaminated:
-            # The mission itself switched off the route these types depend on.
-            # Unambiguous, and the one case worth failing a build over.
-            errors.append(message)
-        else:
-            # Vanilla strands some usages too -- Historical and Lunapark on
-            # Chernarus, Prison on Sakhal -- and types can reach the world by
-            # routes this script does not model (seasonal events, cargo). Worth
-            # reporting, not worth failing on.
-            warnings.append(message + " [check for an event or cargo route first]")
-
-    for usage, capacity in sorted(per_usage.items()):
-        if capacity == 0:
-            notes.append(f"usage {usage!r} appears in mapgroupproto.xml but has "
-                         f"zero placed capacity")
+        for usage in entry.findall("usage"):
+            wanted[usage.get("name")] += count
+    zero = {u: n for u, n in wanted.items() if per_usage.get(u, 0) == 0}
+    if not zero:
+        return
+    listed = ", ".join(f"{u} ({n} nominal)" for u, n in
+                       sorted(zero.items(), key=lambda kv: -kv[1]))
+    notes.append(
+        f"usage(s) carrying nominal with no mapgroupproto capacity: {listed}. "
+        f"NOT evidence the loot is stranded -- areaflags.map carries usage "
+        f"areas (military, hunting, contaminated and others) and grants them "
+        f"by map position, independently of any building's <usage>. This "
+        f"script cannot read that raster. Verify in game before acting")
 
 
 def print_capacity(groups, defaults, placed, mission):
@@ -448,10 +395,13 @@ def print_capacity(groups, defaults, placed, mission):
         sat = f"{nom / cap * 100:.0f}%" if cap else "-"
         print(f"    {usage:<18}{cap:>10}{nom:>10}{sat:>12}")
     print()
-    print("    Both columns over-attribute: a group or type with three usages is")
-    print("    counted in all three. Use for before/after deltas, not absolutes.")
-    print("    Saturation above 100% is normal -- vanilla Livonia ships Military")
-    print("    at 153% and Town at 672%.")
+    print("    LOWER BOUND, not a total. areaflags.map grants usage by map area")
+    print("    as well -- Polana on Livonia is basic houses spawning military")
+    print("    loot -- and this script cannot read that raster. Both columns also")
+    print("    over-attribute, since a group or type with three usages counts in")
+    print("    all three. Use for before/after deltas, never as absolutes.")
+    print("    Saturation above 100% is normal: vanilla Livonia ships Military at")
+    print("    153% and Town at 672%.")
 
 
 def resolve_mission(given):
@@ -506,11 +456,9 @@ def main():
         return 1
     check_limits(groups, mission, errors)
     check_proxy_registration(groups, mission, errors, warnings)
-    check_stranded(groups, defaults, placed, mission, errors, warnings, notes)
 
-    if not args.verbose:
-        notes = [n for n in notes if not n.startswith("usage ")]
-    else:
+    note_zero_capacity(groups, defaults, placed, mission, notes)
+    if args.verbose:
         if no_usage:
             notes.append(f"{len(no_usage)} group(s) carry no <usage>: "
                          + ", ".join(sorted(no_usage)))

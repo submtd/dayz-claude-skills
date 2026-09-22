@@ -81,14 +81,28 @@ These have been confirmed by the operator. Do not re-derive or contradict them.
   up fast, lowering one shows up slowly because the surplus must age out
   through each item's lifetime. Do not judge a reduction after one
   restart.
-- **Loot tiers live in `areaflags.map`, not in any mission XML.** It is a
-  binary raster (~72–80 MB) shipped in the mission tree. `<value name="TierN">`
-  on an ordinary surface building in `mapgroupproto.xml` **does nothing**
-  — tier is a property of where a building stands. Authoring the raster needs
-  **DayZ Tools, which is PC-only**, but **the edited file uploads to a console
-  server and works.** So tier editing is gated on the authoring toolchain, not
-  the platform — "no mods on console" does not extend to it. An earlier session
-  got this backwards and nearly shipped "tiers are unreachable on console."
+- **`areaflags.map` is a second loot router, and it is invisible from the
+  XML.** A binary raster (~72–80 MB) shipped in the mission tree, carrying
+  **map area properties: loot tiers *and* usage areas** — military, hunting,
+  contaminated and others. A loot point's effective routing comes from **both**
+  the building's `<usage>` in `mapgroupproto.xml` and the area flags where it
+  stands. **The example to remember is Polana on Livonia**: mostly ordinary
+  houses, spawns military loot, because the area says so.
+  - `<value name="TierN">` on a surface building **does nothing**.
+  - **A usage with no capacity in `mapgroupproto.xml` is not unreachable.**
+    You cannot prove loot is stranded by reading the mission XML.
+  - Authoring the raster needs **DayZ Tools, PC-only**, but **the edited file
+    uploads to a console server and works** — the gate is the toolchain, not
+    the platform. "No mods on console" does not extend to it.
+  - **[unverified]** how the two sources combine. Polana rules out plain
+    intersection. **Ask; do not infer.**
+
+  **This constant has caught two wrong conclusions in one session** — "tiers
+  are unreachable on console" (wrong: the raster deploys fine) and "Clan Wars'
+  `ContaminatedArea` types are stranded because the gas zones are off" (wrong:
+  those areas are still flagged contaminated in the raster, so the loot still
+  spawns). Both were inference presented as a finding. **When a DayZ mechanism
+  is not settled by source, a shipped file or the operator, ask.**
 - **Silent failure is the norm.** Unknown keys, wrong nesting, missing
   referenced files, wrong-length arrays — none of these error. The server
   boots clean and the feature is quietly absent. This is why every skill ships
@@ -270,17 +284,6 @@ Recorded so they are not "fixed" by accident or repeated.
   `Land_Geoplant_MaintenanceHall`) and `Land_Construction_Crane` has a
   `<category>` directly under `<group>`. Also shipped, also downgraded by the
   validator. Do not copy the shape.
-- **Clan Wars has 63 nominal that cannot spawn.** Eight `types.xml` entries
-  carry `ContaminatedArea` as their only usage while the server has no
-  contaminated areas at all (`cfgEffectArea.json` `Areas: []`,
-  `StaticContaminatedArea` `<active>0</active>`), a consequence of the
-  deliberate decision to remove gas zones, NBC gear and pox items.
-  **`M4A1` is the one that matters** — deliberately raised from vanilla's
-  nominal 1 to 24, so the intent was clearly to make it common. The others
-  (`Mag_M14_*`, `Attack2Bag_*`, both suppressors) are vanilla values left
-  behind. Reported as `stranded-usage` by the validator. **Offer the fix; the
-  operator has not decided whether these should get a real usage or go to
-  nominal 0.**
 - **Vanilla Livonia's `WinterMilitaryCoat_Greay` is a Bohemia typo.** All
   three maps' `cfgspawnabletypes.xml` say `Grey`, as do Chernarus and Sakhal
   `types.xml`. The coat has never spawned on vanilla Livonia. Clan Wars fixed

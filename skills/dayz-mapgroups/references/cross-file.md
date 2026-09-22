@@ -68,12 +68,12 @@ the same as an empty match.
 **The tier caveat:** `<value>` on a proto group does not control tier for
 ordinary surface buildings — tiers come from `areaflags.map`. See rule 6.
 
-### Zero capacity with non-zero nominal
+### There is a second router — see rule 6
 
-If a usage carries `nominal` in `types.xml` but no *placed* group carries that
-usage, those items cannot spawn from building loot. `ContaminatedArea` and
-`Special` are the legitimate exceptions — they are event-fed. See
-`capacity.md`, which works the check through a live example.
+A group's `<usage>` is not the only thing that decides what spawns at its
+points. `areaflags.map` grants usage by map area as well. **So a usage with no
+capacity in these files is not unreachable**, and you cannot prove loot is
+stranded by reading the XML. See `capacity.md`.
 
 ---
 
@@ -136,22 +136,53 @@ See the `dayz-globals` skill for the variable itself.
 
 ---
 
-## 6. Tiers ← `areaflags.map`, not the XML
+## 6. `areaflags.map` — the router that is not in the XML
 
-Loot tier is a property of **where a building stands**, not of the building.
-It lives in `areaflags.map`, a binary raster shipped in the mission tree
-(~72–80 MB).
+**This is the most important rule in this file, and the easiest to miss,
+because the mechanism is invisible from the mission XML.**
 
-- Setting `<value name="TierN">` on an ordinary surface building **does
-  nothing**. `[operator]`
-- `<value>` appears in vanilla only on interiors and dynamically-spawned
-  containers, which the surface raster does not cover. `[shipped]`
-- Editing the raster needs **DayZ Tools, which is PC-only** — but the result
-  **deploys to a console server and works**. `[operator]` The constraint is
-  the authoring toolchain, not the platform.
+`areaflags.map` is a binary raster (~72–80 MB) shipped in the mission tree
+alongside `mapgroupproto.xml`. It carries **map area properties**, and that is
+broader than it sounds: `[operator]`
 
-So on a console mission tree with no PC available, **`<usage>` is the only
-loot-routing lever you have.** Design around usage flags, not tiers.
+- **Loot tiers.** Tier is a property of *where a building stands*.
+- **Usage areas** — military, hunting, contaminated and others.
+
+So a loot point's effective routing comes from **two** sources: the building's
+`<usage>` in `mapgroupproto.xml`, and the area flags at its position.
+
+**Polana on Livonia is the case to remember.** `[operator]` The town is mostly
+ordinary houses, and almost everything in it spawns military loot, because the
+area is flagged military. Nothing in `mapgroupproto.xml` or `mapgrouppos.xml`
+accounts for it.
+
+What follows:
+
+| | |
+|---|---|
+| `<value name="TierN">` on a surface building | **does nothing** `[operator]` |
+| A usage with no capacity in these files | **not** evidence its loot is unreachable |
+| A building's `<usage>` | not the whole answer to "what spawns here" |
+| "This building should spawn military loot" | may be an area-flag job, not a `<usage>` job |
+
+`<value>` appears in vanilla only on interiors and dynamically-spawned
+containers the surface raster does not cover. `[shipped]`
+
+**[unverified]** exactly how the two sources combine — whether area flags add
+to a building's usages, override them, or something else. Polana shows
+military loot in houses that read as `Village`, which rules out plain
+intersection. **Ask or test rather than inferring**; getting this backwards
+has already produced a wrong finding once.
+
+### Editing it
+
+- Authoring needs **DayZ Tools, which is PC-only.**
+- **The result deploys to a console server and works.** `[operator]`
+
+The constraint is the authoring toolchain, not the platform. Do not tell a
+console operator that tiers or area usages are out of reach — tell them they
+need a PC to author the raster. **"No mods on console" does not extend to
+this.**
 
 ---
 

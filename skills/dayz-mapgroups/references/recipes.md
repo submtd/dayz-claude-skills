@@ -40,8 +40,10 @@ right file.
    ```
 4. **Check what you removed** with `scripts/validate.py . --capacity` before
    and after. A compound usually spans several usages; confirm you cut the one
-   you meant. Removing the map's only prison takes `Prison` capacity to zero,
-   which strands any `Prison`-only type — see `capacity.md`.
+   you meant. Note the figures are a lower bound — `areaflags.map` grants
+   usage by area as well, so a compound sitting in a military-flagged zone may
+   keep spawning military loot from the raster even with every group delisted.
+   **Verify in game**, and see `cross-file.md` rule 6.
 5. **The buildings stay.** They remain in the terrain `.pbo`, enterable, with
    no loot. Say so when reporting the change; people expect the building to
    vanish and it does not.
@@ -96,7 +98,7 @@ grep -c 'name="Land_Prison_Main"' mapgrouppos.xml
    ideal here — a CE-distinct type that is mechanically the same weapon; see
    `dayz-types/references/classnames.md`.
 3. **Give them no `<value>`.** Tier does not work this way — see
-   `cross-file.md` rule 6. Routing is by usage alone.
+   `cross-file.md` rule 6.
 4. **Author the group** in `mapgroupproto.xml`:
    ```xml
    <group name="MyBunker_Cache" lootmax="9">
@@ -110,15 +112,21 @@ grep -c 'name="Land_Prison_Main"' mapgrouppos.xml
    </group>
    ```
    Keep `height ≈ 2.5 × range`; that is what Bohemia's tooling emits.
-5. **Place it once** in `mapgrouppos.xml`, and set `a` to match the object's
+5. **Mind where you put it.** `areaflags.map` grants usage by area, so a POI
+   dropped inside a military-flagged zone draws that area's loot on top of
+   your custom usage. If the cache is meant to hold only what you specified,
+   site it outside such a zone — or accept the extra and say so. `[operator]`
+   Polana on Livonia is the reminder that area flags are real and invisible
+   from these files.
+6. **Place it once** in `mapgrouppos.xml`, and set `a` to match the object's
    orientation:
    ```xml
    <group name="MyBunker_Cache" pos="11431.0 214.1 506.7" rpy="0 0 0" a="90" />
    ```
-6. **Budget it.** The variant's `nominal` adds to the mission's total object
+7. **Budget it.** The variant's `nominal` adds to the mission's total object
    count, which is a server performance budget. A POI concentrates loot; it is
    not free.
-7. **Validate, restart, look.** `scripts/validate.py .`, then check in game —
+8. **Validate, restart, look.** `scripts/validate.py .`, then check in game —
    `a` in particular is a look-at-it setting, not a calculate-it one.
 
 ---
@@ -211,7 +219,11 @@ items along with the gas zones:
    loot item it already is; if it is scenery, add it at `nominal 0`.
 4. **Check the old type for orphans.** If nothing references it any more,
    decide whether its `types.xml` entry should go to `nominal 0` or stay.
-5. **Then check the usage flags.** Retiring a mechanic usually strands types
-   that carried its usage — `scripts/validate.py` reports these as
-   `stranded-usage`, and `capacity.md` works through a live case where 63
-   nominal was left with nowhere to spawn.
+5. **Then look at the usage flags — but do not conclude from them.** Retiring
+   a mechanic leaves types carrying its usage behind, and it is tempting to
+   call them dead. **They may not be.** `areaflags.map` can still be granting
+   that usage by area: disabling the contaminated-area *events* on Clan Wars
+   did not stop `ContaminatedArea` loot, because those map areas are still
+   flagged contaminated in the raster. `[operator]` The validator reports
+   zero-capacity usages as a note for exactly this reason. **Confirm in game
+   before removing anything.**

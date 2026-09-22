@@ -126,9 +126,12 @@ Children: `<usage>`, `<value>`, `<container>`, `<dispatch>`.
 
 Which loot pools this building type draws from. Cross-matched against the
 `<usage>` entries on each `<type>` in `types.xml`; an item can spawn here only
-if it shares a usage flag. **This is the primary loot-routing mechanism and
-the only one editable from a console mission tree** (tiers are not — see
-`<value>`).
+if it shares a usage flag.
+
+**This is not the only router.** `areaflags.map` grants usage by map area too,
+so a building can spawn loot its `<usage>` does not mention — Polana on
+Livonia is ordinary houses spawning military loot. `[operator]` See
+`cross-file.md` rule 6 before concluding anything from a group's usage list.
 
 Valid names come from `cfglimitsdefinition.xml` **in the same mission**, not
 from a fixed list. A usage not declared there is silently ignored. Names in
@@ -162,7 +165,8 @@ silently ignored.
 
 **Setting `<value>` on an ordinary surface building does not change its loot
 tier.** `[operator]` Tiers live in **`areaflags.map`**, a binary raster in the
-mission tree; tier is a property of *map position*, not of the building.
+mission tree that also carries usage areas; tier is a property of *map
+position*, not of the building. See `cross-file.md` rule 6.
 
 The shipped usage pattern fits this exactly — `<value>` appears only where the
 area raster has nothing to say:
@@ -186,15 +190,13 @@ and `Tier3`. `[shipped]`
 #### Editing tiers
 
 `areaflags.map` ships in every mission tree (`~72–80 MB`; 75,497,496 bytes on
-Livonia, 83,886,104 on Chernarus and Sakhal). It is a binary raster with a
-short header and is not hand-editable.
+Livonia, 83,886,104 on Chernarus and Sakhal). Binary, short header, not
+hand-editable. Authoring needs **DayZ Tools, PC-only**; the result **deploys
+to a console server and works** `[operator]`, so the gate is the toolchain,
+not the platform. `[unverified]` the internal format beyond the header.
 
-- **Authoring requires DayZ Tools, which is PC-only.**
-- **The resulting file deploys to a console server and works.** `[operator]`
-
-So tier editing is gated on the authoring toolchain, not on the platform. Do
-not tell a console operator tiers are unreachable. `[unverified]` the raster's
-internal format beyond the header.
+Full treatment in `cross-file.md` rule 6 — the raster carries usage areas as
+well as tiers, which is the part that catches people out.
 
 ---
 

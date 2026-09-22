@@ -20,9 +20,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   files rely on this; a case-sensitive check reports 6–11 orphans on every
   untouched vanilla map), checks the proto vocabulary against
   `cfglimitsdefinition.xml`, requires a `db/types.xml` registration for every
-  `<proxy type>`, and reports `stranded-usage` — types whose every usage has
-  zero placed capacity. Takes `--capacity` to print loot capacity and
-  saturation by usage.
+  `<proxy type>`, and notes usages that carry `nominal` with no capacity in
+  these files — as information only, since `areaflags.map` can grant a usage
+  the XML never mentions. Takes `--capacity` to print loot capacity and
+  saturation by usage, documented as a lower bound rather than a total.
 
 ## [0.1.0] - 2026-09-19
 

@@ -112,24 +112,38 @@ it is a pointer to a prototype.
   knows them by name and downgrades them to a tagged warning so an untouched
   mission still exits 0. Do not "fix" them in a mission tree.
 
-- **`<value name="TierN">` on a surface building does nothing.**
-  **[operator]** Loot tiers are not in the mission XML at all — they live in
-  **`areaflags.map`**, a ~72–80 MB binary raster that ships in the mission
-  tree beside these files. Tier is therefore a property of *where a building
-  stands*, not of the building. This is why `<value>` appears on only 2 of
-  446 Chernarus groups, 14 of 456 Livonia and 5 of 525 Sakhal — and only on
-  interiors (the Livonia underground bunker, Sakhal's warhead facility) and
-  dynamically-spawned containers, none of which the area raster covers.
-  **[unverified]** that `<value>` acts as the fallback where the raster does
-  not reach; the shipped pattern fits, but the CE is `proto native` and not
-  in the script repo.
+- **Loot routing has a second source these files do not contain.**
+  **[operator]** `areaflags.map` — a ~72–80 MB binary raster shipped in the
+  mission tree beside them — carries **map area properties: loot tiers *and*
+  usage areas** (military, hunting, contaminated and others). A loot point's
+  effective routing comes from **both** the building's `<usage>` in
+  `mapgroupproto.xml` and the area flags where it stands.
 
-- **Tiers *are* editable on console — the constraint is the toolchain, not
-  the platform.** `areaflags.map` is authored with **DayZ Tools, which is
-  PC-only**, but the resulting file deploys to a console server like any
-  other mission file and works. **[operator]** Do not tell a console operator
-  that loot tiers are out of reach; tell them they need a PC to author the
-  raster. "No mods on console" does **not** extend to this.
+  **The worked example is Polana on Livonia**, which is mostly ordinary
+  houses and spawns military loot anyway, because the area is flagged
+  military. Nothing in `mapgroupproto.xml` or `mapgrouppos.xml` explains
+  that, and no amount of reading them will.
+
+  Consequences, all of them easy to get wrong:
+  - **`<value name="TierN">` on a surface building does nothing** — tier is a
+    property of position. `<value>` appears on only 2 of 446 Chernarus groups,
+    14 of 456 Livonia and 5 of 525 Sakhal, and only on interiors and
+    dynamically-spawned containers the raster does not cover.
+  - **A usage with no capacity in these files is not unreachable.** The raster
+    can grant it anywhere. You cannot prove loot is stranded by reading the
+    XML.
+  - **A building's `<usage>` is not the whole answer** to "what spawns here."
+  - **[unverified]** exactly how the two combine — whether area flags add to
+    the building's usages, replace them, or are intersected. Polana shows
+    military loot in `Village`-usage houses, which rules out plain
+    intersection. Ask or test; do not infer.
+
+- **The raster *is* editable on console — the constraint is the toolchain,
+  not the platform.** `areaflags.map` is authored with **DayZ Tools, which is
+  PC-only**, but the resulting file deploys to a console server like any other
+  mission file and works. **[operator]** So tiers and area usages are both
+  reachable; you need a PC to author the file. Do not tell a console operator
+  this is out of reach — "no mods on console" does **not** extend to it.
 
 - **A group's `lootmax` and its containers' `lootmax` disagree, usually.**
   The group value is the ceiling the engine enforces; containers routinely
@@ -164,15 +178,6 @@ it is a pointer to a prototype.
   the whole filter. There is no fixed list to memorise — read the mission's
   file. This is also what makes **custom** usage flags possible, and it is the
   mechanism the POI recipe depends on. See `references/cross-file.md` rule 2.
-
-- **A usage can carry `nominal` in `types.xml` with nowhere to spawn.** If no
-  *placed* group carries that usage, those items simply never appear — no
-  error, no log line. Removing the map's only prison, or switching off the
-  contaminated-area events while types still route through
-  `ContaminatedArea`, both do this. `scripts/validate.py` reports it as
-  `stranded-usage`; `references/capacity.md` works a live case where 63
-  nominal was stranded, including a rifle whose nominal had been deliberately
-  raised to 24. **Check this after any change that removes capacity.**
 
 - **`<usage>` is on the `<group>`, so it is a property of the building type,
   not the location.** Tagging `Land_Prison_Main` with a custom usage gives it
