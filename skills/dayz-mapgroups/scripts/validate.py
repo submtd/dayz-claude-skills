@@ -36,7 +36,6 @@ Exit status: 0 clean (warnings/notes allowed), 1 errors found, 2 could not run.
 
 import argparse
 import collections
-import json
 import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -46,10 +45,9 @@ from pathlib import Path
 FALLBACK_GROUP_LOOTMAX = 6
 FALLBACK_CONTAINER_LOOTMAX = 4
 
-# Bohemia references these from mapgroupproto.xml and ships no types.xml entry,
-# on vanilla Chernarus and vanilla Livonia alike (Sakhal is clean). Real -- the
-# CE logs them as unknown when the group builds -- but not local drift, and
-# erroring on them would fail an untouched mission.
+# Shapes Bohemia ships that its own schema does not allow. Real -- the engine
+# almost certainly ignores them -- but not local drift, and erroring on them
+# would fail an untouched mission.
 VANILLA_STRUCTURAL_ODDITIES = {
     # Sakhal ships <usage> inside <container>, where it cannot apply, and one
     # stray <category> directly under <group>. Chernarus and Livonia are clean.
@@ -60,6 +58,9 @@ VANILLA_STRUCTURAL_ODDITIES = {
     ("StaticObj_Train_Wagon_Flat_Industrial_Planks_DE", "dechance"),
 }
 
+# Bohemia references these from mapgroupproto.xml and ships no types.xml entry,
+# on vanilla Chernarus and vanilla Livonia alike (Sakhal is clean). The CE logs
+# each as unknown when the group builds. Inherited, not local drift.
 VANILLA_UNREGISTERED_PROXIES = {
     "Offroad_02_Door_1_1_BeigeRust",
     "Offroad_02_Door_1_2_BeigeRust",
