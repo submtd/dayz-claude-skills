@@ -238,7 +238,9 @@ the feedback; it has caught real holes both times.
 commits and pushes. Use `keel:start-work` to cut a `feature/*` branch, add an
 entry under `## [Unreleased]` in `CHANGELOG.md` (the gate checks the
 *committed* state, not the working tree), then `keel:finish-work` to open the
-PR, `keel:review`, and `keel:land`. Squash-merge into `main`.
+PR, `keel:review`, and `keel:land`. Land with a **merge commit**, not a squash:
+`.keel.json` is `trunk` topology, so `main` is the production branch and
+keel blocks any other strategy (`[merge-strategy]`).
 
 Write the commit message so it says what was **wrong** and why, not just what
 changed — the existing history is the model. CI runs `scripts/ci_check.py`,
