@@ -24,6 +24,28 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   these files — as information only, since `areaflags.map` can grant a usage
   the XML never mentions. Takes `--capacity` to print loot capacity and
   saturation by usage, documented as a lower bound rather than a total.
+- **`dayz-adm`**: skill for the `.ADM` admin log, built from engine source
+  and checked against 146,308 production lines from four Xbox servers. It
+  records the shapes parsers get wrong: `(DEAD)` is state, not an event;
+  every respawn writes `is connected`; `is choosing to respawn` is a death
+  only when the player is alive; ` died.` covers starvation, falls, logouts
+  and blade suicides; `killed by  with …` (two spaces) is a kill whose killer
+  the game lost; `id=ERROR` exists; `Dismantled` names parts differently from
+  `Built`; player positions are `x, z, altitude`, while flag and teleport
+  positions put altitude in the middle; and the clock offset's sign is easy
+  to invert.
+- `dayz-adm` ships `classify.py`, which sorts every line of real `.ADM` files
+  into a known shape, errors on any it cannot place, on missing headers and
+  on cut tails, and reports each trap it sees.
+
+### Changed
+
+- `dayz-cfggameplay`: `disableRespawnInUnconsciousness` is read only from
+  `cfggameplay.json`, so Nitrado's panel toggle for it does nothing while
+  the JSON is enabled. The ADM note now quotes the real respawn sequence and
+  its `(DEAD)` form.
+- `scripts/ci_check.py` runs its `--help` and missing-file checks on every
+  script under `skills/*/scripts/`, not only `validate.py`.
 
 ## [0.1.0] - 2026-09-19
 

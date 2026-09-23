@@ -75,6 +75,11 @@ Monorepos with the platform code: `../../dayz-one-life/one-life` and
 parsers, web). Useful as worked examples — Clan Wars' bot is cited in two
 skills already.
 
+A third worked example: `../../the-bloodbag-and-painkiller-show`, the
+operator's deathmatch bot, which is separate from both projects above. Its
+`bot/` also parses ADM logs, and its commit history records the Nitrado
+`log_files` cap and the clock-offset correction.
+
 When a skill needs "what do the live servers actually do," diff those mission
 folders against upstream vanilla **for the matching map**. Diffing Livonia
 against Chernarus produces false positives every time.
@@ -317,14 +322,22 @@ Recorded so they are not "fixed" by accident or repeated.
 
 ## Status
 
-**Done:** `dayz-cfggameplay`, `dayz-globals`, `dayz-types`, `dayz-mapgroups`.
+**Done:** `dayz-cfggameplay`, `dayz-globals`, `dayz-types`, `dayz-mapgroups`,
+`dayz-adm`.
+
+**Production ADM data exists for verification.** Both projects' ingest
+workers keep every raw line in `raw_lines`. Access details are in the
+operator's private notes, not here, because this repo is public. Ask before
+exporting, and commit only anonymised lines.
 
 **Next, in rough priority order:**
 
-1. **ADM/RPT parsing** — the unattributed-death trap is already recorded in
-   `dayz-cfggameplay`. Clan Wars' `packages/adm-parser` and
-   `packages/domain/src/death-verdict.ts` are worked solutions worth
-   generalising.
+1. **`dayz-rpt`**: the RPT, as its own skill (the operator split ADM and
+   RPT). Leads: the RPT carries the platform (console/desktop) the ADM does
+   not, pads hours with a space, says `has connected.` where the ADM says
+   `is connected`, and is ~2.3 MB against ~100 KB. Its uid fills in about
+   2 s after `AuthPlayerLoginState`. One Life removed its RPT pipeline on
+   2026-07-27; Clan Wars' `packages/adm-parser/src/device.ts` still reads it.
 2. **Release and FTP deploy workflow** — `../../dayz-clan-wars/livonia/CLAUDE.md`
    has real scar tissue in it: publishing a Release is what deploys, a tag
    alone ships nothing, and an undeployed tag is invisible without an audit.

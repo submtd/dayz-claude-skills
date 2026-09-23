@@ -177,13 +177,22 @@ Removes the prompt shown when a player respawns.
 - **The body remains and is lootable.** Respawning kills your character in
   place; the killer is not denied the gear. What they lose is the chance to
   take a hostage, revive, or interrogate.
-- **ADM gotcha:** when a player respawns out of unconsciousness the death line
-  **names no killer**. The log shows the hits, the health, the unconscious
-  line, then an unattributed death. A parser that only reads the death line
-  loses the kill. The killer must be inferred from the preceding hit lines.
-  Clan Wars solves this in `packages/domain/src/death-verdict.ts` — `finishedBy()`
+- **Only the JSON value counts.** Script reads this key only from
+  `cfggameplay.json` (`GeneralData`). The legacy `serverDZ.cfg` fallback
+  covers five other keys and not this one. Nitrado's panel toggle "Disable
+  respawning in unconsciousness" therefore does nothing while
+  `cfggameplay.json` is enabled. Clan Wars' panel shows it **off**, the JSON
+  says `true`, and the button is gone in game `[operator]`.
+- **ADM gotcha:** a respawn out of unconsciousness writes `… is choosing to
+  respawn`, then a bare `(DEAD) … died. Stats>` in the same second that
+  **names no killer**. A parser that only reads the death line loses the
+  kill; the killer must be inferred from the hit lines before it. Clan Wars
+  solves this in `packages/domain/src/death-verdict.ts`: `finishedBy()`
   credits the last player hit when the victim was knocked out after it, and
   reports `cause = 'finished'` rather than claiming the log stated a kill.
+  **`true` does not remove the line entirely.** A `(DEAD) … is choosing to
+  respawn` form still appears from the death screen, and it is not a second
+  death. See `dayz-adm`, `references/deaths.md`.
 - Clan Wars runs `true` alongside `shockRefillSpeedUnconscious: 5.0`, a
   deliberate pairing: you cannot escape being downed, but you are not down long.
 
