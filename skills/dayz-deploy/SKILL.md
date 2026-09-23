@@ -21,10 +21,14 @@ deploy can reach bases or characters `[live listing]`.
 
 ## Never answer from memory
 
-Nothing is **shipped** until the deploy run's log shows the expected
-`Upload`/`Replace`/`Delete` lines. Nothing is **on the server** until
-`nitrado.py drift` says so. "I published the Release" is not evidence, and
-neither is "the Releases page looks fine".
+Two kinds of proof, and they answer different questions:
+- **A change is shipped** when the deploy run's log lists its files. That
+  is the report for every release (Everyday step 4).
+- **The server matches the repo** when `nitrado.py drift` says so. Run it
+  after bootstrap, after a rollback, and whenever something looks off.
+
+"I published the Release" proves neither, and neither does "the Releases
+page looks fine".
 
 Asked eight routine questions with no tools, an agent got the mechanics
 mostly right. It still gave two answers that would hurt a server:
@@ -38,6 +42,12 @@ mostly right. It still gave two answers that would hurt a server:
   those are in a Nitrado console mission folder. The things that *do* get
   committed by accident are `.DS_Store` and editor backups. Clan Wars
   deployed a `.DS_Store` to its live server.
+
+**Paths.** The scripts live in this skill's `scripts/` directory. Call
+them by the absolute path of the directory this skill was loaded from,
+because the operator's shell is in their mission repo, not in this plugin.
+Commands are bash/zsh. On Windows, run them in **Git Bash**, which comes
+with Git for Windows, not in PowerShell.
 
 ## What to do
 
@@ -57,13 +67,17 @@ The default is the shortest flow that cannot fail silently: commit to
 `main`, tag it, publish the Release. Keel's PR flow is an upgrade (see
 `references/keel.md`), not a prerequisite.
 
-1. **Commit.** The summary names the in-game effect, not the file:
-   "disable NVGoggles", not "update types.xml". Put concrete before → after
-   values in the body.
+1. **Get up to date, edit, commit.** Run `git pull` first; someone may
+   have changed the repo on github.com. Then make the edit, and run
+   `git add -A && git commit -m "disable NVGoggles and Plastic_Explosive"`.
+   The summary names the in-game effect, not the file: "disable NVGoggles",
+   not "update types.xml". Put concrete before → after values in the body
+   (`git commit` without `-m` opens an editor for both).
    *Gloss: "Saved a snapshot of the change with a note saying what it does
    in game."*
-2. **Tag the next patch version**, then push both:
-   `git tag v1.4.7 && git push origin main v1.4.7`
+2. **Tag the next patch version**, then push both. Find the last version
+   with `git tag --sort=-v:refname | head -1`, add one to the last number,
+   then run `git tag v1.4.7 && git push origin main v1.4.7`.
    *Gloss: "Named this snapshot. A name on its own changes nothing on the
    server."*
 3. **Publish the Release.** This is the deploy trigger:
@@ -71,8 +85,16 @@ The default is the shortest flow that cannot fail silently: commit to
    *Gloss: "Told GitHub to send this snapshot to the server."*
 4. **Verify.** Run `gh run list -L 3` and wait for `completed / success` on
    `v1.4.7`. Then run
-   `gh run view <id> --log | grep -E "Upload|Replace|Delete|removing"` and
-   check that the files you changed are listed.
+   `gh run view <id> --log | grep -E "(Upload|File replace|Delete): "` and
+   check that the files you changed are listed. The action logs
+   `📄 Upload: x`, `🔁 File replace: x` and `📄 Delete: x`
+   `[source: deploy.ts]`. Note that it is `File replace`, not `Replace`.
+   - **No lines at all means nothing shipped**, even though the run is
+     green. If the log says `FTP_SERVER secret is not set — skipping
+     deploy`, the secrets are missing.
+   - If every file says `File content is the same, doing nothing`, the
+     server already had this content. That is normal after a re-run
+     rollback (`references/rollback.md`).
    *Gloss: "Checked that the upload actually happened and sent the right
    files."*
 5. **It goes live at the next restart** (every 2 hours on the live
@@ -88,6 +110,11 @@ Never report a change as shipped after step 3. Step 4 is the report.
   was tagged and never released, so its change only reached the server
   because `v1.6.23` carried it `[history]`. Draft Releases do not deploy
   either. `audit.py` finds both.
+- **Ticking "pre-release" still deploys.** `published` fires for
+  pre-releases `[GitHub docs]`. There is no staging channel here: the next
+  restart runs whatever was published.
+- **Deleting or editing a Release undoes nothing.** The files are already
+  on the server. Undo means a rollback.
 - **The deploy deletes only what it uploaded.** It compares the repo with
   its own record, `.ftp-deploy-sync-state.json` on the server, and never
   with the server itself `[source: ftp-deploy HashDiff.ts]`:
@@ -116,6 +143,12 @@ Never report a change as shipped after step 3. Step 4 is the report.
     then publish a Release.** With no state file, the deploy treats the
     server as empty. It uploads everything and deletes nothing
     `[source: deploy.ts]`.
+  - **[unverified]** whether the reset removes the state file itself. If
+    it does, the next Release re-uploads everything on its own. `drift`
+    tells you which case you are in: it prints `no deploy state on the
+    server` when the file is gone.
+  - Also **[unverified]**: whether custom files (`custom/*.json`) survive
+    a reset. Check with `drift` before assuming.
 - **"Never delete the state file" is too strong.** Deleting it is the
   correct forced full upload after a reset or a hand-deleted file. Its only
   cost is one full upload, `areaflags.map` (~75 MB) included. What must
@@ -135,6 +168,16 @@ Never report a change as shipped after step 3. Step 4 is the report.
     on the server forever.
   - The route is fine. Run `drift` afterwards, or skip the hop by
     uploading to the repo on github.com or through GitHub Desktop.
+- **A rename that only changes case leaves two files on the server.**
+  - A Mac checkout is case-insensitive (`core.ignorecase true`). Nitrado's
+    file system is not.
+  - One Life Chernarus has both `cfgignorelist.xml` (Nitrado's original)
+    and `cfgIgnoreList.xml` (deployed, and vanilla's spelling). One Life
+    Sakhal has both `cfgEffectArea.json` and `cfgeffectarea.json` `[live]`.
+  - The deploy never removes the copy it did not upload. **[unverified]**
+    which one the game reads.
+  - `drift` names these as case twins. Keep the repo's spelling identical
+    to vanilla's, and remove the other by hand once confirmed.
 - **A bot that writes to the server is a second deploy pipeline.**
   - Clan Wars' platform uploads object-spawner files through the Nitrado
     API: awards, booster kits, faction supplies and the teleport hub, each
@@ -148,6 +191,10 @@ Never report a change as shipped after step 3. Step 4 is the report.
     `.driftignore` at the repo root. `drift` then reports them as
     `managed` rather than drift. Add `.driftignore` to the workflow's
     `exclude` list, because the deploy uploads it otherwise.
+  - `.driftignore` holds one glob per line, and `#` starts a comment. It
+    uses the same glob rules as the workflow's `exclude` list, so
+    `custom/awards.json` and `custom/*-supplies.json` both work, and a
+    pattern with no `/` matches that name in any folder.
 - **`init.c` deploys but does nothing.** Nitrado runs its own `init.c`
   `[operator]`.
 - **Anything not in the workflow's `exclude` list lands on the game
@@ -169,7 +216,7 @@ Both use only the standard library. Exit status: 0 clean, 1 findings,
 2 could not run.
 
 ```sh
-python3 skills/dayz-deploy/scripts/audit.py /path/to/mission-repo
+python3 <skill-dir>/scripts/audit.py /path/to/mission-repo
 ```
 
 `audit.py` needs `gh` for the release checks:
@@ -183,8 +230,8 @@ python3 skills/dayz-deploy/scripts/audit.py /path/to/mission-repo
 
 ```sh
 export NITRADO_TOKEN=…   # Nitrado long-life token, scopes: service + file
-python3 skills/dayz-deploy/scripts/nitrado.py drift /path/to/mission-repo [--service ID] [--hash]
-python3 skills/dayz-deploy/scripts/nitrado.py pull  /path/to/empty-dir    [--service ID]
+python3 <skill-dir>/scripts/nitrado.py drift /path/to/mission-repo [--service ID] [--hash]
+python3 <skill-dir>/scripts/nitrado.py pull  /path/to/empty-dir    [--service ID]
 ```
 
 `drift` lists the live mission folder and compares it with the repo and

@@ -4,7 +4,12 @@ For an operator whose mission exists only on the Nitrado server. Claude
 runs the commands. After each step, say in one sentence what it did.
 
 **Needs:** a GitHub account, `git`, and the `gh` CLI signed in
-(`gh auth login`). For the download, also a Nitrado long-life token with the
+(`gh auth login`).
+- On a Mac: `brew install git gh`.
+- On Windows: install Git for Windows and GitHub CLI, then run everything
+  below in **Git Bash**.
+- **[unverified]** the `winget` IDs; check `winget search` before quoting
+  one. For the download, also a Nitrado long-life token with the
 `service` and `file` scopes (Nitrado web panel → Account → Security →
 Long-life access tokens).
 
@@ -15,6 +20,12 @@ the Nitrado file browser.** The first deploy uploads every file in the repo
 over whatever is on the server. If someone edits the server between the
 download and that deploy, the edit is lost.
 
+**A bot cannot be told to freeze.** If anything automated writes to the
+mission folder (Clan Wars' platform does), list those files in a
+`.driftignore` before the first Release. The first deploy overwrites them
+with the repo's copies; the bot restores them on its next write. Ask the
+operator which files their automation owns.
+
 *Gloss: "Paused live edits so the copy we take stays the truth."*
 
 ## 2. Download the mission folder
@@ -23,7 +34,7 @@ download and that deploy, the edit is lost.
 
 ```sh
 export NITRADO_TOKEN=…
-python3 skills/dayz-deploy/scripts/nitrado.py pull ~/dayz/my-server
+python3 <skill-dir>/scripts/nitrado.py pull ~/dayz/my-server
 ```
 
 If the token sees several servers, the script lists them. Re-run with
@@ -31,9 +42,15 @@ If the token sees several servers, the script lists them. Re-run with
 skips `.ftp-deploy-sync-state.json`, which belongs to the deploy and not to
 the mission.
 
+**If the server already has a `.ftp-deploy-sync-state.json`** (from an
+earlier attempt at this, or a previous admin), delete it through the
+Nitrado file browser before the first Release. Otherwise the first deploy
+trusts that stale record and uploads only part of the repo.
+
 **Fallback, FileZilla:** connect with the FTP host, port, username and
 password from the Nitrado web panel, then drag
-`/dayzxb_missions/dayzOffline.<map>/` to an empty local folder. The FTP
+`/dayzxb_missions/dayzOffline.<map>/` to an empty local folder. That
+path is relative to the FTP login's root `[operator]`. The FTP
 credentials live on the server's page in the Nitrado panel. **[ask the
 operator for the exact menu label before quoting one.]**
 
@@ -93,7 +110,11 @@ including you, can read it back."*
 ## 5. Add the workflow
 
 Write `.github/workflows/deploy.yml`. This is the Sakhal variant: it skips
-cleanly, rather than failing, until the secrets exist.
+cleanly, rather than failing, until the secrets exist. That also means a
+green run can have deployed nothing, which is why Everyday step 4 checks
+the log. Its exclude list is the minimum. The live servers add
+`.superpowers/**`, `node_modules/**` and `vendor/**` for their own tooling
+(`deploy-yml.md`).
 
 ```yaml
 name: FTP Deploy (on release)
@@ -158,7 +179,13 @@ jobs:
             .driftignore
 ```
 
-Commit it, then run `audit.py .`. The workflow lint must come back clean.
+```sh
+git add .github/workflows/deploy.yml
+git commit -m "deploy the mission folder to Nitrado on each published Release"
+python3 <skill-dir>/scripts/audit.py .
+```
+
+The workflow lint must come back clean.
 
 *Gloss: "Added the rule: when you publish a Release, GitHub uploads the
 changed files to the server."*
@@ -179,7 +206,7 @@ identical to what is already there, so nothing changes in game.
 Then:
 
 ```sh
-python3 skills/dayz-deploy/scripts/nitrado.py drift .
+python3 <skill-dir>/scripts/nitrado.py drift .
 ```
 
 It should report **no `missing`, `modified` or `pending` entries.** `stray`
@@ -187,8 +214,11 @@ entries are files that were on the server but not in the repo. Usually these
 are hand-uploaded leftovers: ask the operator about each one before deleting
 anything.
 
-Hand edits in the Nitrado browser can resume only with the understanding in
-`SKILL.md`: the next deploy will not see them.
+From here on, the rule for hand edits in the Nitrado browser is simple:
+**make the same change in the repo, or it does not exist.** The deploy
+cannot see a hand edit. It survives only until the repo's copy of that file
+next changes, and is then silently overwritten. After any hand edit, run
+`drift`.
 
 *Gloss: "Shipped for the first time, and checked that the server and GitHub
 now agree."*

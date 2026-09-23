@@ -50,10 +50,37 @@ After 30 days the button is gone. Step 4 is the only path.
 
 ## 4. Standard: revert, then release
 
+Pick **one** of these two, not both.
+
+**One bad commit, and nothing good after it:**
+
 ```sh
-git revert <bad-commit>                    # one bad commit
-git revert --no-commit v1.4.5..HEAD        # everything since the last good tag
-git commit -m "roll back <what it did in game>: <why>"
+git revert <bad-commit>        # opens an editor for the message; save and close
+```
+
+If `<bad-commit>` is a merge (a PR landed through keel, for example), add
+`-m 1`.
+
+**Put everything back exactly as it was at the last good tag:**
+
+```sh
+git restore --source=v1.4.5 --staged --worktree -- .
+git commit -m "roll back to v1.4.5: <what broke in game>"
+```
+
+- This makes the repo identical to `v1.4.5`. Files added since are
+  deleted, and files deleted since come back. It works across merge
+  commits.
+- **It also undoes any good changes made since `v1.4.5`.** That is the
+  point when you do not yet know which change broke it. Re-apply the good
+  ones later, one release at a time.
+- Do not use `git revert --no-commit v1.4.5..HEAD` for this. It stops at
+  the first merge commit with `is a merge but no -m option was given`
+  `[tested]`.
+
+**Then ship it like any release:**
+
+```sh
 git tag v1.4.8 && git push origin main v1.4.8
 gh release create v1.4.8 --title v1.4.8 --notes "Rolls back v1.4.6–v1.4.7: …"
 ```
@@ -62,11 +89,15 @@ gh release create v1.4.8 --title v1.4.8 --notes "Rolls back v1.4.6–v1.4.7: …
 way."*
 
 Then verify exactly as for any release (`SKILL.md` Everyday step 4). The run
-log should list the reverted files as `Replace`:
+log should list the reverted files as `🔁 File replace:`, with these
+exceptions:
 
-- A revert of a commit that **added** a file shows `Delete` for that file,
-  and it is removed from the server `[source]`.
-- A revert of a commit that **deleted** a file shows it as an upload, and it
+- **If you did the step 3 re-run first**, the server already has the good
+  files. This release then logs them as `File content is the same, doing
+  nothing`. That is correct: `main` and the server now agree.
+- A revert of a commit that **added** a file shows `📄 Delete:` for that
+  file, and it is removed from the server `[source]`.
+- A revert of a commit that **deleted** a file shows `📄 Upload:`, and it
   comes back.
 
 Always a **new** version number. Never move or reuse a tag.
@@ -76,8 +107,8 @@ Always a **new** version number. Never move or reuse a tag.
 - **`git push --force` / `git reset --hard` on `main`.** This rewrites the
   history that deploys come from, and loses the record of what was live.
 - **Re-releasing an old tag as "the fix".** The server goes back, but
-  `main` still carries the bad change into the next release. It is the same
-  trap as step 3 with no follow-up.
+  `main` still carries the bad change into the next release. Step 3 is only
+  allowed because step 4 follows at once.
 - **`dangerous-clean-slate: true`** "to force a clean deploy". It "Deletes
   ALL contents of server-dir, even items in excluded" `[source: README]`,
   hand-uploaded files included. To force a full upload, delete
@@ -95,7 +126,9 @@ already did:
 - **Surplus loot** from a raised `nominal` stays until each item's
   `lifetime` expires, or longer if players carry or stash it. Look up the
   affected types' `lifetime` in `db/types.xml` and tell the operator
-  honestly how long that is.
+  honestly how long that is. Whether carried or stashed copies count
+  against `nominal` depends on the type's `count_in_*` flags. See
+  `dayz-types`.
 - **Bases, vehicles and inventories** created under a bad rule stay.
 - **A storage wipe** (Nitrado settings → **Storage wipe**, which takes
   effect at the next restart and then switches itself off `[operator]`)

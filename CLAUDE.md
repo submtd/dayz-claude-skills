@@ -332,12 +332,17 @@ Recorded so they are not "fixed" by accident or repeated.
 ## Status
 
 **Done:** `dayz-cfggameplay`, `dayz-globals`, `dayz-types`, `dayz-mapgroups`,
-`dayz-adm`, `dayz-rpt`.
+`dayz-adm`, `dayz-rpt`, `dayz-deploy`.
 
 **The RPT is the verification loop for every CE skill.** After a deploy, five
 of its boot counts equal counts you can take from the mission files: ignore
 list, prototypes, map groups, active events, and active event positions. See
 `dayz-rpt`. Use them before judging whether an edit "did nothing".
+
+**The live server itself is readable.** `dayz-deploy`'s `nitrado.py drift`
+lists a mission folder through the Nitrado API, read-only, with the token
+the ingest workers already use. Use it before believing that the repo is
+what is live: on Clan Wars it is not quite (see `dayz-deploy`).
 
 **Production ADM data exists for verification.** Both projects' ingest
 workers keep every raw line in `raw_lines`. Access details are in the
@@ -346,22 +351,19 @@ exporting, and commit only anonymised lines.
 
 **Next, in rough priority order:**
 
-1. **Release and FTP deploy workflow** — `../../dayz-clan-wars/livonia/CLAUDE.md`
-   has real scar tissue in it: publishing a Release is what deploys, a tag
-   alone ships nothing, and an undeployed tag is invisible without an audit.
-2. **`env/*_territories.xml`** — infected and animal zone tuning, the lever
+1. **`env/*_territories.xml`** — infected and animal zone tuning, the lever
    behind `ZombieMaxCount`.
-3. **`cfgspawnabletypes.xml` and `cfgrandompresets.xml`** — attachment and
+2. **`cfgspawnabletypes.xml` and `cfgrandompresets.xml`** — attachment and
    cargo presets. Clan Wars adds 136 lines of weapon `<attachments>` presets
    that no existing skill covers, and `dayz-globals` already leans on the
    `<damage>` side of `cfgspawnabletypes.xml`.
-4. **`db/events.xml` and `cfgeventspawns.xml`** — dynamic events, helicopter
+3. **`db/events.xml` and `cfgeventspawns.xml`** — dynamic events, helicopter
    crashes, contaminated areas. `dayz-mapgroups` already depends on reading
    whether the contaminated-area events are live.
    The RPT already names this pair's mismatches:
    `[CE][SpawnRandomLoot] … Sum of container LootMax is lower than event
    child LootMax` is `events.xml` asking for more than `mapgroupproto.xml`
    holds. See `dayz-rpt` `references/ce-diagnostics.md`.
-5. **Beyond the mission tree**, per the broadened scope: `areaflags.map` and
+4. **Beyond the mission tree**, per the broadened scope: `areaflags.map` and
    DayZ Tools, Enforce script and modding for PC servers, and map editing.
    None of these are started.

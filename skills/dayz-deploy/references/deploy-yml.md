@@ -38,7 +38,7 @@ the deploy uploads a pointer file instead of the map
 | Input | Live value | What it does, and the trap |
 |---|---|---|
 | `server` / `username` / `password` | `${{ secrets.FTP_* }}` | Nitrado's FTP credentials. Secrets are write-only; nobody can read them back from GitHub. |
-| `protocol` / `port` | `ftp` / `21` | Plain FTP, as Nitrado provides. |
+| `protocol` / `port` | `ftp` / `21` | Plain FTP: the password crosses the network unencrypted. **[unverified]** whether Nitrado accepts `ftps`. Test it before switching. |
 | `local-dir` | `./` | The repo root **is** the mission folder. It must end in `/` `[README]`. |
 | `server-dir` | `${{ secrets.FTP_DIRECTORY }}` | `/dayzxb_missions/dayzOffline.<map>/`. It **must end in `/`** `[README]`. Because it is a secret, `audit.py` cannot check it, so check it when you set it. |
 | `state-name` | `.ftp-deploy-sync-state.json` | The deploy's record of what it uploaded, kept on the server. Renaming it orphans the old record and forces one full upload. |
@@ -59,6 +59,19 @@ the deploy uploads a pointer file instead of the map
    - **Only in the state file** → `Delete`.
    - **Same hash** → nothing.
 4. Write a new state file.
+
+What each outcome looks like in the run log `[source: deploy.ts,
+syncProvider.ts]`:
+
+```
+📄 Upload: custom/new-spawner.json
+🔁 File replace: db/types.xml
+📄 Delete: custom/old-spawner.json
+⚖️  File content is the same, doing nothing: cfggameplay.json
+Uploading: 338 kB -- Deleting: 21.3 kB -- Replacing: 9.21 kB
+removing "custom/old-spawner.json"
+🎉 Sync complete. Saving current server state to "….ftp-deploy-sync-state.json"
+```
 
 The real server is never listed. A file the state file does not know about
 is invisible, and so is one it wrongly believes is present. That is what

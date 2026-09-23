@@ -216,9 +216,17 @@ def _compare(repo, server, state, excludes):
         return found
     known = {e["name"]: e for e in state["data"] if e["type"] == "file"}
     deployed_at = state["generatedTime"] / 1000
+    # A Mac checkout is case-insensitive and Nitrado is not, so a rename that
+    # only changes case leaves two files on the server.
+    by_case = {q.lower(): q for q in repo}
     for p in sorted(set(server) - set(known)):
-        found.append(("stray", p, "on server, never uploaded by the deploy — "
-                      "no deploy will ever remove it"))
+        twin = by_case.get(p.lower())
+        if twin and twin != p:
+            found.append(("stray", p, f"differs only by case from the repo's {twin} — "
+                          "the server has both, and no deploy will remove this one"))
+        else:
+            found.append(("stray", p, "on server, never uploaded by the deploy — "
+                          "no deploy will ever remove it"))
     for p in sorted(set(known) - set(server)):
         if p in repo:
             found.append(("missing", p, "deploy believes it is on the server; it is not, "
