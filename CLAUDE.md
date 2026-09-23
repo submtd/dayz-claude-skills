@@ -7,6 +7,24 @@ installing the plugin; this file is for whoever is authoring the next skill.
 re-derive the same facts, re-trust the same bad sources, or repeat corrections
 the operator has already made.
 
+## The first rule: never assume
+
+**If you think you know something, ask for confirmation before acting on it
+or writing it down.** This applies to everything — DayZ mechanics, what a
+live server does, operator intent, which skill to build next, what to name a
+branch, whether to land a PR. A plausible belief is not a fact until source,
+a shipped file, or the operator confirms it.
+
+- **State your read, then ask.** "I believe X because Y — is that right?" is
+  the shape. Do not present an inference as a finding, and do not quietly
+  proceed on one.
+- **An unconfirmed claim stays `[unverified]`.** Filling a gap with a good
+  guess is the failure mode this repo exists to prevent.
+- **This has already gone wrong.** "Tiers are unreachable on console" and
+  "Clan Wars' contaminated-area loot is stranded" were both inference
+  written up as findings, and both were wrong. See the `areaflags.map`
+  constant below.
+
 ## What this repo is
 
 A Claude Code plugin (`dayz`) holding skills for DayZ server development. Each
