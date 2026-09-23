@@ -52,8 +52,7 @@ go to its **Dashboard**, and find the **FTP Credentials** card. It shows
 Hostname, Port (21), Username and Password; click the eye icon to reveal
 the password `[operator screenshot]`.
 - The FTP **Hostname** is a `….gamedata.io` name. It is **not** the game
-  server IP shown at the top of the page. Using the game IP is the usual
-  first mistake.
+  server IP shown at the top of the page; do not use the game IP for FTP.
 - The pencil icon next to the password changes it. After a change,
   update the `FTP_PASSWORD` secret too, or every deploy fails.
 
