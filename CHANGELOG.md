@@ -5,6 +5,35 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **`dayz-deploy`**: skill for moving a Nitrado mission folder onto GitHub,
+  deploying it, and rolling it back. The FTP deploy decides what to send by
+  comparing the repo with its own state file, and never looks at the
+  server. On Clan Wars, that record disagreed with the live mission folder
+  in three ways:
+  - six hand-uploaded files that no deploy will ever remove
+  - a tracked file deleted by hand that no deploy will send again
+  - five spawner files rewritten by the platform's bot
+
+  A no-skill baseline recommended `dangerous-clean-slate: true` after a
+  Nitrado mission reset. That setting deletes the entire mission folder;
+  the skill's fix is deleting the state file. It records:
+  - tags and draft Releases deploy nothing
+  - the deploy deletes only files it uploaded
+  - re-running a deploy is a 30-day stopgap that still needs a revert
+  - reverting config does not revert the world
+  - when a storage wipe is and is not the answer
+- `dayz-deploy` ships two scripts:
+  - `audit.py` checks tags against Releases and deploy runs, and lints the
+    workflow. A missing Release whose change a later deploy carried is
+    reported as a note.
+  - `nitrado.py` compares the live server with the repo through the
+    Nitrado API (`drift`), and downloads a server for bootstrap (`pull`).
+    `drift` reports strays, missing, modified and pending files, reads
+    `.driftignore` for bot-owned paths, and flags the storage-wipe and
+    mission-reset toggles while armed. Both are read-only.
+
 ## [0.3.0] - 2026-09-23
 
 ### Added

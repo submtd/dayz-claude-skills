@@ -130,6 +130,18 @@ These have been confirmed by the operator. Do not re-derive or contradict them.
   referenced files, wrong-length arrays — none of these error. The server
   boots clean and the feature is quietly absent. This is why every skill ships
   a validator.
+- **The FTP deploy trusts its own record, not the server.**
+  `.ftp-deploy-sync-state.json` on the server lists what the deploy
+  uploaded:
+  - It deletes only files on that list.
+  - It never re-sends a hand-deleted file until the file's content changes
+    in the repo.
+  - It cannot see hand edits.
+
+  Deleting the state file forces one full upload and deletes nothing
+  `[source]`. **`dangerous-clean-slate: true` wipes the whole mission
+  folder: never.** See `dayz-deploy`, and use `nitrado.py drift` to see
+  what is actually live.
 
 ## Sources, in descending authority
 
@@ -328,16 +340,57 @@ Recorded so they are not "fixed" by accident or repeated.
 - **One Life's `types.xml` is deliberately frozen** at the vanilla reset while
   upstream `master` has moved on (mossy ghillies, `Tier4` on `PoliceVest`,
   `deloot` changes). **Flag the gap; never auto-apply it.**
+- **Live drift, found 2026-09-23 by `dayz-deploy`'s `nitrado.py drift`.**
+  Recorded so nobody chases it or "fixes" it by accident.
+  - **Files no deploy will remove** (hand uploads the deploy never
+    recorded):
+    - Clan Wars `custom/`: 6 files.
+    - One Life Livonia:
+      - `custom/`: 32 `pra-teleport-*.json`, `teleports.json` and
+        `flag-supplies.json`, uploaded Aug 28–29.
+      - `bonfire.json`.
+      - `docs/`: 2 files.
+    - One Life Chernarus: `custom/build.json` and `.DS_Store`.
+  - **Clan Wars `custom/flag-supplies.json`** is tracked in git and absent
+    from the server. It is one of the three orphaned files, so nothing is
+    lost.
+  - **Case twins:**
+    - One Life Chernarus has both `cfgignorelist.xml` and
+      `cfgIgnoreList.xml` (identical today).
+    - One Life Sakhal has both `cfgEffectArea.json` and
+      `cfgeffectarea.json`.
+
+    The repos use vanilla's spelling. **[unverified]** which one the game
+    reads.
+  - **One Life Livonia `cfggameplay.json`** has a hand-added, empty
+    `playerRestrictedAreaFiles` (Aug 29). **Leave it**; the next release
+    that touches the file cleans it up.
+  - **Clan Wars' platform rewrites five `custom/` spawner files** (awards,
+    booster kits, faction supplies, teleport hub, bunker enhancements) with
+    live player data. The repo holds `{}` placeholders. A release that
+    changes one overwrites the bot's version.
+  - **`db/types.xml` is re-saved at every restart on all four servers.**
+    Its content is unchanged (Clan Wars, by hash), and no other `db/` file
+    is touched. **The writer is unknown**: the operator expects nothing to
+    write it outside a release. `drift` shows it as `touched`, and
+    `--hash` clears it.
+  - **Clan Wars tracks `.DS_Store`** despite `.gitignore`. It needs
+    `git rm --cached .DS_Store`.
 
 ## Status
 
 **Done:** `dayz-cfggameplay`, `dayz-globals`, `dayz-types`, `dayz-mapgroups`,
-`dayz-adm`, `dayz-rpt`.
+`dayz-adm`, `dayz-rpt`, `dayz-deploy`.
 
 **The RPT is the verification loop for every CE skill.** After a deploy, five
 of its boot counts equal counts you can take from the mission files: ignore
 list, prototypes, map groups, active events, and active event positions. See
 `dayz-rpt`. Use them before judging whether an edit "did nothing".
+
+**The live server itself is readable.** `dayz-deploy`'s `nitrado.py drift`
+lists a mission folder through the Nitrado API, read-only, with the token
+the ingest workers already use. Use it before believing that the repo is
+what is live: on Clan Wars it is not quite (see `dayz-deploy`).
 
 **Production ADM data exists for verification.** Both projects' ingest
 workers keep every raw line in `raw_lines`. Access details are in the
@@ -346,22 +399,19 @@ exporting, and commit only anonymised lines.
 
 **Next, in rough priority order:**
 
-1. **Release and FTP deploy workflow** — `../../dayz-clan-wars/livonia/CLAUDE.md`
-   has real scar tissue in it: publishing a Release is what deploys, a tag
-   alone ships nothing, and an undeployed tag is invisible without an audit.
-2. **`env/*_territories.xml`** — infected and animal zone tuning, the lever
+1. **`env/*_territories.xml`** — infected and animal zone tuning, the lever
    behind `ZombieMaxCount`.
-3. **`cfgspawnabletypes.xml` and `cfgrandompresets.xml`** — attachment and
+2. **`cfgspawnabletypes.xml` and `cfgrandompresets.xml`** — attachment and
    cargo presets. Clan Wars adds 136 lines of weapon `<attachments>` presets
    that no existing skill covers, and `dayz-globals` already leans on the
    `<damage>` side of `cfgspawnabletypes.xml`.
-4. **`db/events.xml` and `cfgeventspawns.xml`** — dynamic events, helicopter
+3. **`db/events.xml` and `cfgeventspawns.xml`** — dynamic events, helicopter
    crashes, contaminated areas. `dayz-mapgroups` already depends on reading
    whether the contaminated-area events are live.
    The RPT already names this pair's mismatches:
    `[CE][SpawnRandomLoot] … Sum of container LootMax is lower than event
    child LootMax` is `events.xml` asking for more than `mapgroupproto.xml`
    holds. See `dayz-rpt` `references/ce-diagnostics.md`.
-5. **Beyond the mission tree**, per the broadened scope: `areaflags.map` and
+4. **Beyond the mission tree**, per the broadened scope: `areaflags.map` and
    DayZ Tools, Enforce script and modding for PC servers, and map editing.
    None of these are started.
