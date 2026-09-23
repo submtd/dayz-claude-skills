@@ -148,7 +148,7 @@ TRAP_TEXT = {
 }
 
 
-def check_file(path, rep, want_unknown):
+def check_file(path, rep):
     raw = path.read_bytes()
     text = raw.decode("utf-8", errors="replace")
     lines = text.split("\n")
@@ -259,7 +259,7 @@ def main():
 
     rep = Report()
     for f in files:
-        check_file(f, rep, args.unknown)
+        check_file(f, rep)
 
     print(f"{rep.files} file(s), {rep.lines} non-empty lines, "
           f"{sum(rep.shapes.values())} recognised, {len(rep.unknown)} unrecognised")
