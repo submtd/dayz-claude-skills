@@ -48,9 +48,7 @@ VANILLA_DEFECTS = {
 
 TS = re.compile(r"^ ?(\d{1,2}):(\d{2}):(\d{2})\.(\d{2,3})\s+(.*)$")
 R = {
-    "exe": re.compile(r"^== (\S+\.exe)$"),
     "version": re.compile(r"^Version (\S+)"),
-    "current": re.compile(r"^Current time:\s+(\S+ \S+)"),
     "mission": re.compile(r"Module: \$CurrentDir:mpmissions\\([^\\]+)\\init\.c"),
     "types": re.compile(r"\[CE\]\[TypeSetup\] :: (\d+) classes setuped"),
     "ignore": re.compile(r"\[CE\]\[IgnoreList\] \"[^\"]+\" :: loaded (\d+) types"),
@@ -86,10 +84,9 @@ def triage(path):
         info["lines"] += 1
         m = TS.match(raw)
         body = m.group(5) if m else raw.strip()
-        for key in ("exe", "version", "current"):
-            mm = R[key].match(raw)
-            if mm and key not in info:
-                info[key] = mm.group(1)
+        mm = R["version"].match(raw)
+        if mm and "version" not in info:
+            info["version"] = mm.group(1)
         if R["term"].search(body):
             info["term"] = True
         mm = R["mission"].search(body)
