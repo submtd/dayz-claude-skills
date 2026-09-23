@@ -80,6 +80,9 @@ changing loot condition, base decay or infected counts.**
    are both 100m, so nothing spawns or is deleted inside a 100m bubble around
    any player.
 6. **Run the validator** — it checks the cross-file pairs.
+7. **Read the RPT** (`dayz-rpt`). It names the mission folder the server
+   actually loaded and lists the CE's load complaints. `globals.xml` itself
+   has no load count there that has been matched to the file.
 
 ```sh
 python3 skills/dayz-globals/scripts/validate.py /path/to/mission/db/globals.xml

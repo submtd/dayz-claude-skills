@@ -115,6 +115,7 @@ any mission; run it before and after any nominal change.
 | Which files a change here also touches | `references/cross-file.md` |
 | Adding an item vanilla does not list | `references/classnames.md` |
 | Checking a file before shipping | `scripts/validate.py` |
+| Is a classname invalid? Did the server load my file? | `dayz-rpt`: `Type 'X' will be ignored. (Type does not exist. (Typo?))` names a bad classname; silence proves nothing |
 
 ```sh
 scripts/validate.py <mission>/db/types.xml            # errors, warnings, notes

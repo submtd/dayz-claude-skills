@@ -193,8 +193,11 @@ Nitrado-specific. Ask rather than infer.
 **Item classnames have no authority below the operator.** They live in the
 game's `.cpp` configs, which are in neither GitHub repo. Engine source settles
 CE *behavior*, not the catalogue of items. A classname is confirmed by a
-published working list or an in-game test, and by nothing else — and a wrong
-one fails exactly like a right one that is mis-tiered.
+published working list or an in-game test — and a wrong one fails exactly
+like a right one that is mis-tiered. **One exception, for the negative case
+only:** the RPT's `!!! [CE][offlineDB] :: Type 'X' will be ignored. (Type does
+not exist. (Typo?))` proves `X` is not a class. RPT silence proves nothing
+about a name being right (see `dayz-rpt`).
 
 ## How to build a skill
 
@@ -313,6 +316,12 @@ Recorded so they are not "fixed" by accident or repeated.
   three maps' `cfgspawnabletypes.xml` say `Grey`, as do Chernarus and Sakhal
   `types.xml`. The coat has never spawned on vanilla Livonia. Clan Wars fixed
   it; One Life still carries the typo.
+- **The RPT flags six more Bohemia-shipped names at every boot**, all from
+  vanilla files for their map: `Static_FrozenScientist_DE` (no such class),
+  `ChristmasTree` / `ChristmasTree_Green` and two Sakhal police wrecks (not
+  spawnable), and the `VehicleTransitBus` entry in `cfgeventspawns.xml` (no
+  such event). `dayz-rpt/scripts/triage.py` knows them by name. **Not local
+  drift.**
 - **Clan Wars' `PartyTent*` ignore-list / `types.xml` overlap is intentional.**
   Party tents are a known source of server lag and are not allowed to exist.
   Flagged as a note by the validator; do not "resolve" it.
@@ -323,7 +332,12 @@ Recorded so they are not "fixed" by accident or repeated.
 ## Status
 
 **Done:** `dayz-cfggameplay`, `dayz-globals`, `dayz-types`, `dayz-mapgroups`,
-`dayz-adm`.
+`dayz-adm`, `dayz-rpt`.
+
+**The RPT is the verification loop for every CE skill.** After a deploy, five
+of its boot counts equal counts you can take from the mission files: ignore
+list, prototypes, map groups, active events, and active event positions. See
+`dayz-rpt`. Use them before judging whether an edit "did nothing".
 
 **Production ADM data exists for verification.** Both projects' ingest
 workers keep every raw line in `raw_lines`. Access details are in the
@@ -332,24 +346,22 @@ exporting, and commit only anonymised lines.
 
 **Next, in rough priority order:**
 
-1. **`dayz-rpt`**: the RPT, as its own skill (the operator split ADM and
-   RPT). Leads: the RPT carries the platform (console/desktop) the ADM does
-   not, pads hours with a space, says `has connected.` where the ADM says
-   `is connected`, and is ~2.3 MB against ~100 KB. Its uid fills in about
-   2 s after `AuthPlayerLoginState`. One Life removed its RPT pipeline on
-   2026-07-27; Clan Wars' `packages/adm-parser/src/device.ts` still reads it.
-2. **Release and FTP deploy workflow** — `../../dayz-clan-wars/livonia/CLAUDE.md`
+1. **Release and FTP deploy workflow** — `../../dayz-clan-wars/livonia/CLAUDE.md`
    has real scar tissue in it: publishing a Release is what deploys, a tag
    alone ships nothing, and an undeployed tag is invisible without an audit.
-3. **`env/*_territories.xml`** — infected and animal zone tuning, the lever
+2. **`env/*_territories.xml`** — infected and animal zone tuning, the lever
    behind `ZombieMaxCount`.
-4. **`cfgspawnabletypes.xml` and `cfgrandompresets.xml`** — attachment and
+3. **`cfgspawnabletypes.xml` and `cfgrandompresets.xml`** — attachment and
    cargo presets. Clan Wars adds 136 lines of weapon `<attachments>` presets
    that no existing skill covers, and `dayz-globals` already leans on the
    `<damage>` side of `cfgspawnabletypes.xml`.
-5. **`db/events.xml` and `cfgeventspawns.xml`** — dynamic events, helicopter
+4. **`db/events.xml` and `cfgeventspawns.xml`** — dynamic events, helicopter
    crashes, contaminated areas. `dayz-mapgroups` already depends on reading
    whether the contaminated-area events are live.
-6. **Beyond the mission tree**, per the broadened scope: `areaflags.map` and
+   The RPT already names this pair's mismatches:
+   `[CE][SpawnRandomLoot] … Sum of container LootMax is lower than event
+   child LootMax` is `events.xml` asking for more than `mapgroupproto.xml`
+   holds. See `dayz-rpt` `references/ce-diagnostics.md`.
+5. **Beyond the mission tree**, per the broadened scope: `areaflags.map` and
    DayZ Tools, Enforce script and modding for PC servers, and map editing.
    None of these are started.
