@@ -130,6 +130,18 @@ These have been confirmed by the operator. Do not re-derive or contradict them.
   referenced files, wrong-length arrays — none of these error. The server
   boots clean and the feature is quietly absent. This is why every skill ships
   a validator.
+- **The FTP deploy trusts its own record, not the server.**
+  `.ftp-deploy-sync-state.json` on the server lists what the deploy
+  uploaded:
+  - It deletes only files on that list.
+  - It never re-sends a hand-deleted file until the file's content changes
+    in the repo.
+  - It cannot see hand edits.
+
+  Deleting the state file forces one full upload and deletes nothing
+  `[source]`. **`dangerous-clean-slate: true` wipes the whole mission
+  folder: never.** See `dayz-deploy`, and use `nitrado.py drift` to see
+  what is actually live.
 
 ## Sources, in descending authority
 
@@ -328,6 +340,42 @@ Recorded so they are not "fixed" by accident or repeated.
 - **One Life's `types.xml` is deliberately frozen** at the vanilla reset while
   upstream `master` has moved on (mossy ghillies, `Tier4` on `PoliceVest`,
   `deloot` changes). **Flag the gap; never auto-apply it.**
+- **Live drift, found 2026-09-23 by `dayz-deploy`'s `nitrado.py drift`.**
+  Recorded so nobody chases it or "fixes" it by accident.
+  - **Files no deploy will remove** (hand uploads the deploy never
+    recorded):
+    - Clan Wars `custom/`: 6 files.
+    - One Life Livonia:
+      - `custom/`: 32 `pra-teleport-*.json`, `teleports.json` and
+        `flag-supplies.json`, uploaded Aug 28–29.
+      - `bonfire.json`.
+      - `docs/`: 2 files.
+    - One Life Chernarus: `custom/build.json` and `.DS_Store`.
+  - **Clan Wars `custom/flag-supplies.json`** is tracked in git and absent
+    from the server. It is one of the three orphaned files, so nothing is
+    lost.
+  - **Case twins:**
+    - One Life Chernarus has both `cfgignorelist.xml` and
+      `cfgIgnoreList.xml` (identical today).
+    - One Life Sakhal has both `cfgEffectArea.json` and
+      `cfgeffectarea.json`.
+
+    The repos use vanilla's spelling. **[unverified]** which one the game
+    reads.
+  - **One Life Livonia `cfggameplay.json`** has a hand-added, empty
+    `playerRestrictedAreaFiles` (Aug 29). **Leave it**; the next release
+    that touches the file cleans it up.
+  - **Clan Wars' platform rewrites five `custom/` spawner files** (awards,
+    booster kits, faction supplies, teleport hub, bunker enhancements) with
+    live player data. The repo holds `{}` placeholders. A release that
+    changes one overwrites the bot's version.
+  - **`db/types.xml` is re-saved at every restart on all four servers.**
+    Its content is unchanged (Clan Wars, by hash), and no other `db/` file
+    is touched. **The writer is unknown**: the operator expects nothing to
+    write it outside a release. `drift` shows it as `touched`, and
+    `--hash` clears it.
+  - **Clan Wars tracks `.DS_Store`** despite `.gitignore`. It needs
+    `git rm --cached .DS_Store`.
 
 ## Status
 

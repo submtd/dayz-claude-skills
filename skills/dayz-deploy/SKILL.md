@@ -206,6 +206,15 @@ Never report a change as shipped after step 3. Step 4 is the report.
   At ~75 MB the file triggers git's 50 MiB warning but is under GitHub's
   100 MiB block `[GitHub docs]`, so plain git works and LFS is optional.
   The warning is expected, not an error.
+- **`db/types.xml` is re-saved at every restart, content unchanged.**
+  - Seen on all four live servers. Its timestamp lands a minute after each
+    even-hour restart, long after the last release, and no other `db/` file
+    is touched `[live]`.
+  - The content is byte-identical to the repo (Clan Wars, by hash).
+  - **[unverified]** what writes it. The operator expects nothing to write
+    it outside a release.
+  - `drift` therefore always reports it as `touched`. Run `--hash`; do not
+    treat it as a hand edit.
 - **Two Nitrado toggles act at the next restart and are visible only until
   then:** "Storage wipe" and "Reset Mission-xml to default". `drift` reads
   both from the API and flags them as `ARMED`.

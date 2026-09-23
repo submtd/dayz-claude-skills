@@ -47,12 +47,19 @@ earlier attempt at this, or a previous admin), delete it through the
 Nitrado file browser before the first Release. Otherwise the first deploy
 trusts that stale record and uploads only part of the repo.
 
-**Fallback, FileZilla:** connect with the FTP host, port, username and
-password from the Nitrado web panel, then drag
+**Where the FTP login is:** in the Nitrado web panel, open the server,
+go to its **Dashboard**, and find the **FTP Credentials** card. It shows
+Hostname, Port (21), Username and Password; click the eye icon to reveal
+the password `[operator screenshot]`.
+- The FTP **Hostname** is a `….gamedata.io` name. It is **not** the game
+  server IP shown at the top of the page. Using the game IP is the usual
+  first mistake.
+- The pencil icon next to the password changes it. After a change,
+  update the `FTP_PASSWORD` secret too, or every deploy fails.
+
+**Fallback, FileZilla:** connect with those four values, then drag
 `/dayzxb_missions/dayzOffline.<map>/` to an empty local folder. That
-path is relative to the FTP login's root `[operator]`. The FTP
-credentials live on the server's page in the Nitrado panel. **[ask the
-operator for the exact menu label before quoting one.]**
+path is relative to the FTP login's root `[operator]`.
 
 *Gloss: "Copied the server's mission files to this computer."*
 
@@ -92,7 +99,7 @@ only you can see it."*
 ## 4. Add the four secrets
 
 ```sh
-gh secret set FTP_SERVER       # FTP host from the Nitrado panel
+gh secret set FTP_SERVER       # Dashboard → FTP Credentials → Hostname
 gh secret set FTP_USERNAME
 gh secret set FTP_PASSWORD
 gh secret set FTP_DIRECTORY    # /dayzxb_missions/dayzOffline.<map>/
