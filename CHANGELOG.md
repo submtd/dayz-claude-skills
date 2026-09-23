@@ -5,6 +5,29 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **`dayz-rpt`**: skill for the `.RPT` and `script_*.log`, built from 24
+  production RPTs (241,602 lines) from four Xbox servers. Five of the central
+  economy's boot counts equal counts taken from the mission files, exactly,
+  on every server, so a deploy can be confirmed instead of guessed. The ignore
+  list, prototypes, map groups, active events and active event positions all
+  match once comments are excluded. It records:
+  - the game naming invalid classnames and events itself
+  - `desktop` devices, which are PC crossplay players
+  - the `init.c` module line, which is Nitrado's `init.c`, not the deployed one
+  - two-digit milliseconds: `.37` is 37 ms
+  - `No Shutdown message present`, which appears after clean shutdowns too
+- `dayz-rpt` ships `triage.py`. It drops Bohemia's asset noise and reports
+  each boot's load counts, load complaints, runtime spawn warnings, storage
+  failures, shutdown state, and joins versus respawns. Bohemia's own shipped
+  defects are tagged by name, so an untouched mission exits 0.
+
+### Changed
+
+- `dayz-types`, `dayz-mapgroups` and `dayz-globals` point to `dayz-rpt` for
+  confirming that an edit loaded.
+
 ## [0.2.0] - 2026-09-22
 
 ### Added

@@ -199,6 +199,7 @@ it is a pointer to a prototype.
 | How much loot can spawn here? Is my change safe? | `references/capacity.md` |
 | How do these files interact with types.xml, cfglimitsdefinition, object spawners? | `references/cross-file.md` |
 | Concentrate loot at a POI, disable loot at one place, thin for performance, add a custom container | `references/recipes.md` |
+| Did the server load my edit? | `dayz-rpt`: `[CE][LoadPrototype] loaded N` and `[CE][LoadMap] "Group" loaded N` equal the uncommented group counts exactly |
 
 ## House conventions
 
