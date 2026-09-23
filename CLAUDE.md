@@ -7,19 +7,59 @@ installing the plugin; this file is for whoever is authoring the next skill.
 re-derive the same facts, re-trust the same bad sources, or repeat corrections
 the operator has already made.
 
+## The first rule: never assume
+
+**If you think you know something, ask for confirmation before acting on it
+or writing it down.** This applies to everything — DayZ mechanics, what a
+live server does, operator intent, which skill to build next, what to name a
+branch, whether to land a PR. A plausible belief is not a fact until source,
+a shipped file, or the operator confirms it.
+
+- **State your read, then ask.** "I believe X because Y — is that right?" is
+  the shape. Do not present an inference as a finding, and do not quietly
+  proceed on one.
+- **An unconfirmed claim stays `[unverified]`.** Filling a gap with a good
+  guess is the failure mode this repo exists to prevent.
+- **This has already gone wrong.** "Tiers are unreachable on console" and
+  "Clan Wars' contaminated-area loot is stranded" were both inference
+  written up as findings, and both were wrong. See the `areaflags.map`
+  constant below.
+
 ## What this repo is
 
 A Claude Code plugin (`dayz`) holding skills for DayZ server development. Each
 skill is `skills/<name>/` with `SKILL.md`, optional `references/` for heavy
 lookup material, and optional `scripts/` for tooling.
 
-The point is not to summarise the DayZ wiki. It is to capture **what the wiki
-gets wrong, what only the engine source settles, and what only the operator
-knows** — the things that have already cost time.
+**The goal is expertise at all things DayZ** — not support documentation for
+any one server. A skill should make the reader expert on its subject in
+general: the mechanism, its traps, what the documentation gets wrong, and how
+PC and console differ. The point is not to summarise the DayZ wiki; it is to
+capture **what the wiki gets wrong, what only the engine source settles, and
+what only the operator knows.**
+
+Two consequences that are easy to get backwards:
+
+- **The live servers are evidence, not the subject.** They are how a claim
+  gets verified and how Bohemia's own defects get caught. Operator intent goes
+  in as an illustration of a general technique, not as a record of what one
+  server happens to do. Write "here is how to disable loot at one location,
+  and here is a server that did it," never "here is what Clan Wars does."
+- **A console constraint is a consequence, not the universe.** Document the
+  general mechanism first, then what it costs on Xbox/Nitrado. Saying
+  something is impossible when it is merely awkward is the failure mode — see
+  `areaflags.map` under the domain constants, where "tiers are unreachable on
+  console" was wrong and the real answer is "you need a PC to author the
+  file."
+
+The scope runs past the CE mission tree: modding, Enforce script, map editing
+and PC-side tooling are all in it, and the priority list below should grow in
+that direction rather than stopping at the XML.
 
 ## The servers these skills serve
 
-Two projects, four live mission configs, all **Xbox hosted on Nitrado**.
+Two projects, four live mission configs, all **Xbox hosted on Nitrado**. They
+are the verification corpus — diff against them, do not write *for* them.
 
 | | One Life | Clan Wars |
 |---|---|---|
@@ -59,6 +99,28 @@ These have been confirmed by the operator. Do not re-derive or contradict them.
   up fast, lowering one shows up slowly because the surplus must age out
   through each item's lifetime. Do not judge a reduction after one
   restart.
+- **`areaflags.map` is a second loot router, and it is invisible from the
+  XML.** A binary raster (~72–80 MB) shipped in the mission tree, carrying
+  **map area properties: loot tiers *and* usage areas** — military, hunting,
+  contaminated and others. A loot point's effective routing comes from **both**
+  the building's `<usage>` in `mapgroupproto.xml` and the area flags where it
+  stands. **The example to remember is Polana on Livonia**: mostly ordinary
+  houses, spawns military loot, because the area says so.
+  - `<value name="TierN">` on a surface building **does nothing**.
+  - **A usage with no capacity in `mapgroupproto.xml` is not unreachable.**
+    You cannot prove loot is stranded by reading the mission XML.
+  - Authoring the raster needs **DayZ Tools, PC-only**, but **the edited file
+    uploads to a console server and works** — the gate is the toolchain, not
+    the platform. "No mods on console" does not extend to it.
+  - **[unverified]** how the two sources combine. Polana rules out plain
+    intersection. **Ask; do not infer.**
+
+  **This constant has caught two wrong conclusions in one session** — "tiers
+  are unreachable on console" (wrong: the raster deploys fine) and "Clan Wars'
+  `ContaminatedArea` types are stranded because the gas zones are off" (wrong:
+  those areas are still flagged contaminated in the raster, so the loot still
+  spawns). Both were inference presented as a finding. **When a DayZ mechanism
+  is not settled by source, a shipped file or the operator, ask.**
 - **Silent failure is the norm.** Unknown keys, wrong nesting, missing
   referenced files, wrong-length arrays — none of these error. The server
   boots clean and the feature is quietly absent. This is why every skill ships
@@ -228,6 +290,18 @@ Recorded so they are not "fixed" by accident or repeated.
   (Livonia, inherited by Clan Wars). `dayz-types/scripts/validate.py` knows
   these three by name and downgrades them to a tagged warning so an untouched
   mission still exits 0. **Do not treat them as local drift.**
+- **Five `<proxy>` types ship unregistered in `mapgroupproto.xml`** —
+  `Offroad_02_Door_{1_1,1_2,2_1,2_2}_BeigeRust` and
+  `Offroad_02_Trunk_BeigeRust` are referenced by proto and absent from
+  `types.xml` on **vanilla Chernarus and vanilla Livonia** (Sakhal is clean),
+  so three of the four live configs inherit it. The CE logs each as an unknown
+  type when the group builds. `dayz-mapgroups/scripts/validate.py` knows them
+  by name and downgrades them to a tagged warning. **Not local drift.**
+- **Sakhal's `mapgroupproto.xml` breaks Bohemia's own schema** — two
+  containers carry a `<usage>` where it cannot apply (`Land_Factory_Small`,
+  `Land_Geoplant_MaintenanceHall`) and `Land_Construction_Crane` has a
+  `<category>` directly under `<group>`. Also shipped, also downgraded by the
+  validator. Do not copy the shape.
 - **Vanilla Livonia's `WinterMilitaryCoat_Greay` is a Bohemia typo.** All
   three maps' `cfgspawnabletypes.xml` say `Grey`, as do Chernarus and Sakhal
   `types.xml`. The coat has never spawned on vanilla Livonia. Clan Wars fixed
@@ -241,25 +315,26 @@ Recorded so they are not "fixed" by accident or repeated.
 
 ## Status
 
-**Done:** `dayz-cfggameplay`, `dayz-globals`, `dayz-types`.
+**Done:** `dayz-cfggameplay`, `dayz-globals`, `dayz-types`, `dayz-mapgroups`.
 
 **Next, in rough priority order:**
 
-1. **`mapgroupproto.xml`** — now the biggest single gap. `<dispatch>` proxies,
-   `<container>` categories, `lootmax`, `value`/`usage` tiers, `flags`,
-   `range`/`height`. The dispatch mechanism is documented in
-   `dayz-globals/references/cross-file.md`; the rest of the file is
-   undocumented here and none of it is obvious. **`dayz-types` now leans on it
-   in three places** — `usage`/`value`/`tag` matching against real loot
-   points, the `lootdispatch` category, and the custom-usage POI recipe in
-   `dayz-types/references/classnames.md`, which is the operator's technique
-   for putting strong loot in one building without map-wide inflation.
-2. **ADM/RPT parsing** — the unattributed-death trap is already recorded in
+1. **ADM/RPT parsing** — the unattributed-death trap is already recorded in
    `dayz-cfggameplay`. Clan Wars' `packages/adm-parser` and
    `packages/domain/src/death-verdict.ts` are worked solutions worth
    generalising.
-3. **Release and FTP deploy workflow** — `../../dayz-clan-wars/livonia/CLAUDE.md`
+2. **Release and FTP deploy workflow** — `../../dayz-clan-wars/livonia/CLAUDE.md`
    has real scar tissue in it: publishing a Release is what deploys, a tag
    alone ships nothing, and an undeployed tag is invisible without an audit.
-4. **`env/*_territories.xml`** — infected and animal zone tuning, the lever
+3. **`env/*_territories.xml`** — infected and animal zone tuning, the lever
    behind `ZombieMaxCount`.
+4. **`cfgspawnabletypes.xml` and `cfgrandompresets.xml`** — attachment and
+   cargo presets. Clan Wars adds 136 lines of weapon `<attachments>` presets
+   that no existing skill covers, and `dayz-globals` already leans on the
+   `<damage>` side of `cfgspawnabletypes.xml`.
+5. **`db/events.xml` and `cfgeventspawns.xml`** — dynamic events, helicopter
+   crashes, contaminated areas. `dayz-mapgroups` already depends on reading
+   whether the contaminated-area events are live.
+6. **Beyond the mission tree**, per the broadened scope: `areaflags.map` and
+   DayZ Tools, Enforce script and modding for PC servers, and map editing.
+   None of these are started.

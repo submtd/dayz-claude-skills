@@ -30,6 +30,7 @@ Updating is `git pull` in this repo — installed plugins follow the source.
 |---|---|
 | `dayz-cfggameplay` | `cfggameplay.json`: build anywhere, base/container damage, raid windows, stamina, spawn gear presets, object spawners, fast travel, seasonal temperatures, lighting, hit indicators, map and nav ownership, weapon obstruction, drowning, inertia, boat decay. Includes a validator. |
 | `dayz-globals` | `db/globals.xml`: loot condition, cleanup and corpse lifetimes, loot respawn rates, territory flag refresh, idle mode, session timers, infected and animal caps, food decay. Its validator checks the cross-file pairs against `cfgspawnabletypes.xml`, `db/types.xml` and `env/zombie_territories.xml`. |
+| `dayz-mapgroups` | `mapgroupproto.xml` and `mapgrouppos.xml`: where loot may sit inside a building type, how much fits, which buildings on the map are lootable, usage routing, fixed placement via `<dispatch>`/`<proxy>`, custom POIs and loot concentration, disabling loot at one location, loot-point thinning for performance. Its validator resolves pos against proto case-insensitively, checks the vocabulary against `cfglimitsdefinition.xml`, requires a `db/types.xml` registration for every proxy type, and notes usages carrying `nominal` that these files give no capacity — as information, since `areaflags.map` routes loot too. |
 | `dayz-types` | `db/types.xml`: per-item nominal and min, lifetimes and base decay, quantity, loot tiers and usage, the `count_in_*` and `crafted` flags, disabling an item versus removing it, adding classnames vanilla omits, and the total-nominal loot budget. Its validator checks names against `cfglimitsdefinition.xml` and cross-checks `cfgignorelist.xml`, `cfgspawnabletypes.xml` and `db/events.xml`. |
 
 Each skill is a directory under `skills/` holding a `SKILL.md`, optional
@@ -77,10 +78,13 @@ mistake that has already cost time, and they are tested before they land.
 python3 skills/dayz-cfggameplay/scripts/validate.py /path/to/mission/cfggameplay.json
 python3 skills/dayz-globals/scripts/validate.py     /path/to/mission/db/globals.xml
 python3 skills/dayz-types/scripts/validate.py       /path/to/mission/db/types.xml
+python3 skills/dayz-mapgroups/scripts/validate.py   /path/to/mission
 ```
 
 `dayz-types` also takes `--budget`, which prints total `nominal` by category —
 the loot budget that governs how many objects the server has to track.
+`dayz-mapgroups` takes `--capacity`, which prints loot capacity and saturation
+by usage flag.
 
 Checks that the JSON parses, that `version` is present, that every key is one
 the engine actually reads for that map, that positional arrays are the right
