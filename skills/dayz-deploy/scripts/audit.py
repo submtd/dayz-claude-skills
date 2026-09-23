@@ -25,8 +25,10 @@ from pathlib import Path
 ACTION = "SamKirkland/FTP-Deploy-Action"
 DEFAULT_STATE = ".ftp-deploy-sync-state.json"
 # Uploading these to the game server is a leak or a waste, never intended.
-REQUIRED_EXCLUDES = (".git/**", ".github/**")
-ADVISED_EXCLUDES = ("**/*.md",)
+# Checked by meaning — does some pattern exclude this sample path — so any
+# spelling that works (`**/.git/**`, the action's `**/.git*/**`) passes.
+REQUIRED_EXCLUDES = ((".git/**", ".git/HEAD"), (".github/**", ".github/workflows/deploy.yml"))
+ADVISED_EXCLUDES = (("**/*.md", "README.md"),)
 
 
 def glob_to_regex(pattern):
@@ -56,7 +58,7 @@ def workflow_input(text, key):
 
 
 def workflow_excludes(text):
-    m = re.search(r"^(\s*)exclude:\s*\|\s*\n((?:\1\s+.*\n?)+)", text, re.M)
+    m = re.search(r"^(\s*)exclude:\s*\|[-+]?\s*\n((?:(?:\1\s+.*|\s*)(?:\n|$))+)", text, re.M)
     if not m:
         return None
     return [l.strip() for l in m.group(2).splitlines()
@@ -90,42 +92,58 @@ def lint_workflow(text):
         found.append(("warn", "no exclude list — the action's defaults apply; state the "
                       "list explicitly so docs and tooling never reach the server"))
     else:
-        for want in REQUIRED_EXCLUDES:
-            if want not in excludes:
-                found.append(("error", f"exclude list is missing {want} — it would be "
+        pats = [glob_to_regex(e) for e in excludes]
+        covered = lambda sample: any(r.fullmatch(sample) for r in pats)
+        for want, sample in REQUIRED_EXCLUDES:
+            if not covered(sample):
+                found.append(("error", f"exclude list does not cover {want} — it would be "
                               "uploaded to the game server"))
-        for want in ADVISED_EXCLUDES:
-            if want not in excludes:
-                found.append(("warn", f"exclude list is missing {want}"))
+        for want, sample in ADVISED_EXCLUDES:
+            if not covered(sample):
+                found.append(("warn", f"exclude list does not cover {want}"))
     return found
 
 
 def audit_releases(tags, releases, runs, ancestors):
-    """ancestors[(a, b)] is True when tag a's commit is an ancestor of tag b's."""
+    """ancestors[(a, b)] is True when tag a's commit is an ancestor of tag b's.
+
+    A tag whose change never deployed is only a note when a later successful
+    deploy contains its commit: the FTP diff is against the server's state,
+    so that later deploy shipped it.
+    """
     found = []
     released = {r["tagName"]: r for r in releases}
     latest_run = {}
     for run in runs:  # gh lists newest first; keep the first seen per tag
         latest_run.setdefault(run["headBranch"], run)
-    deployed = [t for t in tags if t in released and not released[t]["isDraft"]
+    # Tags that exist only as Releases (never fetched here) are audited too.
+    every = list(tags) + [t for t in released if t not in tags]
+    deployed = [t for t in every if t in released and not released[t]["isDraft"]
                 and latest_run.get(t, {}).get("conclusion") == "success"]
-    for tag in tags:
-        rel = released.get(tag)
+
+    def missed(tag, why):
+        carrier = next((d for d in deployed if ancestors.get((tag, d))), None)
+        if carrier:
+            found.append(("note", f"{tag}: {why}, but {carrier} deployed after it "
+                          "and carried the change"))
+        else:
+            found.append(("error", f"{tag}: {why} — never deployed"))
+
+    for tag in every:
+        rel, run = released.get(tag), latest_run.get(tag)
         if rel is None:
-            carrier = next((d for d in deployed if ancestors.get((tag, d))), None)
-            if carrier:
-                found.append(("note", f"{tag}: tag has no Release, but {carrier} "
-                              "deployed after it and carried the change"))
-            else:
-                found.append(("error", f"{tag}: tag has no Release — never deployed"))
+            missed(tag, "tag has no Release")
         elif rel["isDraft"]:
-            found.append(("warn", f"{tag}: Release is a draft — drafts do not deploy"))
-        elif tag not in latest_run:
+            carrier = next((d for d in deployed if ancestors.get((tag, d))), None)
+            found.append(("note" if carrier else "warn",
+                          f"{tag}: Release is a draft — drafts do not deploy"))
+        elif run is None:
             found.append(("warn", f"{tag}: no deploy run found (runs older than the "
                           "retention window are not listed)"))
-        elif latest_run[tag].get("conclusion") != "success":
-            found.append(("error", f"{tag}: latest deploy run concluded "
-                          f"{latest_run[tag].get('conclusion') or latest_run[tag].get('status')}"))
+        elif run.get("status") and run["status"] != "completed":
+            found.append(("warn", f"{tag}: deploy run is still {run['status']}"))
+        elif run.get("conclusion") != "success":
+            missed(tag, f"deploy run concluded {run.get('conclusion') or 'without a result'}")
     return found
 
 
@@ -155,7 +173,10 @@ def main():
     else:
         tags = run(["git", "tag", "--sort=v:refname"], repo).stdout.split()
         rel = run(["gh", "release", "list", "-L", "1000", "--json", "tagName,isDraft"], repo)
-        runs = run(["gh", "run", "list", "-L", "1000", "--event", "release",
+        # Only the deploy workflow's runs: a second release-triggered workflow
+        # (a notifier) must not decide whether a release deployed.
+        which = ["--workflow", workflows[0].name] if workflows else []
+        runs = run(["gh", "run", "list", "-L", "1000", "--event", "release", *which,
                     "--json", "headBranch,conclusion,status"], repo)
         if rel.returncode or runs.returncode:
             findings.append(("warn", "gh could not read releases/runs — release checks "
@@ -163,8 +184,10 @@ def main():
         else:
             releases, runlist = json.loads(rel.stdout), json.loads(runs.stdout)
             ancestors = {}
+            # Ancestry only matters for tags that may not have deployed.
+            ok = {r["headBranch"] for r in runlist if r.get("conclusion") == "success"}
             for t in tags:
-                if t in {r["tagName"] for r in releases}:
+                if t in ok:
                     continue
                 for d in tags:
                     ancestors[(t, d)] = run(["git", "merge-base", "--is-ancestor", t, d],

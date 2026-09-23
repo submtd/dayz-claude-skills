@@ -3,15 +3,15 @@
 For an operator whose mission exists only on the Nitrado server. Claude
 runs the commands. After each step, say in one sentence what it did.
 
-**Needs:** a GitHub account, `git`, and the `gh` CLI signed in
-(`gh auth login`).
-- On a Mac: `brew install git gh`.
-- On Windows: install Git for Windows and GitHub CLI, then run everything
-  below in **Git Bash**.
-- **[unverified]** the `winget` IDs; check `winget search` before quoting
-  one. For the download, also a Nitrado long-life token with the
-`service` and `file` scopes (Nitrado web panel → Account → Security →
-Long-life access tokens).
+**Needs:**
+- A GitHub account, `git`, and the `gh` CLI signed in (`gh auth login`).
+  - On a Mac: `brew install git gh`.
+  - On Windows: install Git for Windows and GitHub CLI, then run
+    everything below in **Git Bash**. **[unverified]** the `winget` IDs;
+    check `winget search` before quoting one.
+- For the download, a Nitrado long-life token with the `service` and
+  `file` scopes (Nitrado web panel → Account → Security → Long-life access
+  tokens).
 
 ## 1. Freeze hand edits
 

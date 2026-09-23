@@ -74,6 +74,10 @@ git commit -m "roll back to v1.4.5: <what broke in game>"
 - **It also undoes any good changes made since `v1.4.5`.** That is the
   point when you do not yet know which change broke it. Re-apply the good
   ones later, one release at a time.
+- It also rolls back `.github/workflows/deploy.yml` and `.driftignore`.
+  If either has changed since `v1.4.5` (for example, a new exclude),
+  keep the current version by adding `':!.github' ':!.driftignore'` after
+  the `.`, or check `git diff --stat` before committing.
 - Do not use `git revert --no-commit v1.4.5..HEAD` for this. It stops at
   the first merge commit with `is a merge but no -m option was given`
   `[tested]`.

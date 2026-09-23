@@ -239,16 +239,26 @@ with the state file. Each finding carries one of these labels:
 
 | Label | Meaning |
 |---|---|
-| `stray` | Never uploaded by the deploy |
-| `missing` | The deploy believes the file is there, and it is not |
-| `modified` | The size changed since the last deploy |
-| `touched` | Written after the last deploy; confirm with `--hash` |
+| `stray` | Never uploaded by the deploy, or under a path the workflow now excludes |
+| `missing` | The deploy believes the file is there, and it is not. With no state file: in the repo, not on the server |
+| `modified` | The size differs from the last deploy. With `--hash`: the content differs |
+| `touched` | Same size, written after the last deploy finished; confirm with `--hash` |
 | `pending-upload` | In the repo but not yet released |
 | `pending-delete` | The next release removes it |
 | `ARMED` | A Nitrado toggle is set to act at the next restart |
 | `managed` | Matches a pattern in the repo's `.driftignore`: written by a bot, so not drift |
 
 `pull` downloads the mission folder for bootstrap.
+
+- `drift` compares the **working tree**, not the last commit, so
+  uncommitted edits show as `pending-upload`.
+- **Xbox only.** Both commands read `/dayzxb_missions/`. **[unverified]**
+  the folder names on PlayStation and PC Nitrado servers; there, the
+  commands fail with a Nitrado API error.
+- "After the last deploy finished" means the state file's own timestamp on
+  the server. The deploy uploads that file last, and its recorded
+  `generatedTime` is stamped before the upload starts
+  `[source: localFiles.ts, syncProvider.ts]`.
 
 Both commands only read from the server. With several servers on one
 token, they list them and ask for `--service`. A walk takes about a minute,

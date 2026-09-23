@@ -30,6 +30,7 @@ from pathlib import Path
 
 API = "https://api.nitrado.net"
 STATE = ".ftp-deploy-sync-state.json"
+ACTION = "SamKirkland/FTP-Deploy-Action"
 DRIFTIGNORE = ".driftignore"
 # The deploy runner's clock and Nitrado's are not the same clock.
 CLOCK_SLACK = 120
@@ -72,7 +73,9 @@ def api(path, **params):
             body = json.load(r)
     except urllib.error.HTTPError as e:
         raise Fail(f"Nitrado API {e.code} on {path}")
-    if body.get("status") != "success":
+    except (urllib.error.URLError, OSError, ValueError) as e:
+        raise Fail(f"Nitrado API unreachable on {path}: {e}")
+    if not isinstance(body, dict) or body.get("status") != "success":
         raise Fail(f"Nitrado API: {body.get('message', body)}")
     return body["data"]
 
@@ -85,8 +88,11 @@ def find_service(service_id):
             # details.name is Nitrado's product label ("Gameserver - 26 Slots"),
             # which cannot tell two servers apart; the hostname can.
             def label(s):
-                cfg = api(f"/services/{s['id']}/gameservers")["gameserver"]["settings"]["config"]
-                return f"{cfg.get('mission', '?'):28} {cfg.get('hostname', '')}"
+                try:
+                    cfg = api(f"/services/{s['id']}/gameservers")["gameserver"]["settings"]["config"]
+                    return f"{cfg.get('mission', '?'):28} {cfg.get('hostname', '')}"
+                except (Fail, KeyError, TypeError):
+                    return "?"
             lines = "\n".join(f"  {s['id']}  {label(s)}" for s in dayz)
             raise Fail(f"{len(dayz)} DayZ services on this token; pass --service:\n{lines}")
         service_id = dayz[0]["id"]
@@ -141,8 +147,21 @@ def walk(service_id, root):
 def download(service_id, path):
     url = api(f"/services/{service_id}/gameservers/file_server/download",
               file=path)["token"]["url"]
-    with urllib.request.urlopen(url, timeout=600) as r:
-        return r.read()
+    try:
+        with urllib.request.urlopen(url, timeout=600) as r:
+            return r.read()
+    except (urllib.error.URLError, OSError) as e:
+        raise Fail(f"download failed for {path}: {e}")
+
+
+def parse_state(raw):
+    try:
+        state = json.loads(raw)
+        state["data"], state["generatedTime"]
+        return state
+    except (ValueError, TypeError, KeyError) as e:
+        raise Fail(f"{STATE} on the server is unreadable ({e!r}); delete it and "
+                   "publish a Release to rebuild it")
 
 
 def repo_files(repo):
@@ -159,14 +178,24 @@ def repo_files(repo):
     return files
 
 
+def parse_excludes(text):
+    """The `exclude: |` block; blank lines inside it do not end it (YAML)."""
+    m = re.search(r"^(\s*)exclude:\s*\|[-+]?\s*\n((?:(?:\1\s+.*|\s*)(?:\n|$))+)", text, re.M)
+    if not m:
+        return None
+    return [l.strip() for l in m.group(2).splitlines()
+            if l.strip() and not l.strip().startswith("#")]
+
+
 def repo_excludes(repo):
     for wf in sorted((Path(repo) / ".github" / "workflows").glob("*.y*ml")):
         text = wf.read_text(encoding="utf-8")
-        m = re.search(r"^(\s*)exclude:\s*\|\s*\n((?:\1\s+.*\n?)+)", text, re.M)
-        if m:
-            return [l.strip() for l in m.group(2).splitlines()
-                    if l.strip() and not l.strip().startswith("#")]
-    return [".git/**", "**/.git/**", ".github/**", "**/.github/**"]
+        if ACTION in text:
+            found = parse_excludes(text)
+            if found is not None:
+                return found
+    # The action's own defaults, used when the workflow sets no exclude list.
+    return ["**/.git*", "**/.git*/**", "**/node_modules/**"]
 
 
 def read_driftignore_text(text):
@@ -202,7 +231,7 @@ def _compare(repo, server, state, excludes):
     pats = [glob_to_regex(e) for e in excludes]
     excluded = lambda p: any(r.fullmatch(p) for r in pats)
     repo = {p: v for p, v in repo.items() if not excluded(p)}
-    server = {p: v for p, v in server.items() if p != STATE}
+    server_all, server = server, {p: v for p, v in server.items() if p != STATE}
     found = []
     if state is None:
         for p in sorted(set(server) - set(repo)):
@@ -214,8 +243,13 @@ def _compare(repo, server, state, excludes):
                 found.append(("modified", p, f"size {server[p]['size']} on server, "
                               f"{repo[p][0]} in repo"))
         return found
-    known = {e["name"]: e for e in state["data"] if e["type"] == "file"}
-    deployed_at = state["generatedTime"] / 1000
+    # The action drops excluded paths from its record before comparing, so it
+    # never deletes them; neither should drift predict that it will.
+    known = {e["name"]: e for e in state["data"]
+             if e.get("type") == "file" and not excluded(e["name"])}
+    # generatedTime is stamped before the upload starts, and the state file is
+    # uploaded last, so its own timestamp is when the deploy finished.
+    deployed_at = server_all.get(STATE, {}).get("modified_at", state["generatedTime"] / 1000)
     # A Mac checkout is case-insensitive and Nitrado is not, so a rename that
     # only changes case leaves two files on the server.
     by_case = {q.lower(): q for q in repo}
@@ -250,12 +284,16 @@ def _compare(repo, server, state, excludes):
 
 
 def cmd_drift(args):
+    if not Path(args.repo).is_dir():
+        raise Fail(f"not a directory: {args.repo}")
     service_id, root, gs = find_service(args.service)
     repo = repo_files(args.repo)
     server = walk(service_id, root)
-    state = json.loads(download(service_id, f"{root}/{STATE}")) if STATE in server else None
+    state = parse_state(download(service_id, f"{root}/{STATE}")) if STATE in server else None
     found = compare(repo, server, state, repo_excludes(args.repo),
                     repo_driftignore(args.repo))
+    if args.hash and state is None:
+        print("--hash skipped: no deploy state to compare against", file=sys.stderr)
     if args.hash and state:
         known = {e["name"]: e["hash"] for e in state["data"] if e["type"] == "file"}
         confirmed = []
@@ -281,8 +319,8 @@ def cmd_drift(args):
 
 def cmd_pull(args):
     dest = Path(args.dest)
-    if dest.exists() and any(dest.iterdir()):
-        raise Fail(f"{dest} is not empty — refusing to overwrite")
+    if dest.exists() and (not dest.is_dir() or any(dest.iterdir())):
+        raise Fail(f"{dest} is not an empty directory — refusing to overwrite")
     service_id, root, _ = find_service(args.service)
     files = walk(service_id, root)
     for rel in sorted(files):
@@ -292,7 +330,7 @@ def cmd_pull(args):
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(download(service_id, f"{root}/{rel}"))
         print(f"  {rel}")
-    print(f"\n{len(files)} file(s) from {root}")
+    print(f"\n{len(files) - (STATE in files)} file(s) from {root}")
     return 0
 
 
@@ -312,6 +350,9 @@ def main():
         return cmd_drift(args) if args.command == "drift" else cmd_pull(args)
     except Fail as e:
         print(e, file=sys.stderr)
+        return 2
+    except (KeyError, TypeError) as e:
+        print(f"unexpected Nitrado API response: {e!r}", file=sys.stderr)
         return 2
 
 
