@@ -30,8 +30,12 @@ ADVISED_EXCLUDES = ("**/*.md",)
 
 
 def glob_to_regex(pattern):
-    """Translate the action's exclude globs (minimatch subset) to a regex."""
-    out, i = "", 0
+    """Translate the action's exclude globs (minimatch subset) to a regex.
+
+    The action matches with `matchBase: true`, so a pattern with no slash
+    matches the file name at any depth: `.gitignore` excludes `a/.gitignore`.
+    """
+    out, i = ("(?:.*/)?" if "/" not in pattern else ""), 0
     while i < len(pattern):
         if pattern.startswith("**/", i):
             out += "(?:.*/)?"; i += 3
