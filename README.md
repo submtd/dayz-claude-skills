@@ -28,6 +28,7 @@ Updating is `git pull` in this repo — installed plugins follow the source.
 
 | Skill | Covers |
 |---|---|
+| `dayz-adm` | The `.ADM` admin log: every line shape and what gates it, player ids and `id=ERROR`, coordinate orders, `(DEAD)`, deaths with no named killer, the two forms of `is choosing to respawn`, respawns that log `is connected`, suicides, midnight and the UTC offset, and fetching logs from Nitrado. Its classifier sorts every line of real files into a known shape, reports any it cannot place, and flags the shapes parsers routinely mishandle. |
 | `dayz-cfggameplay` | `cfggameplay.json`: build anywhere, base/container damage, raid windows, stamina, spawn gear presets, object spawners, fast travel, seasonal temperatures, lighting, hit indicators, map and nav ownership, weapon obstruction, drowning, inertia, boat decay. Includes a validator. |
 | `dayz-globals` | `db/globals.xml`: loot condition, cleanup and corpse lifetimes, loot respawn rates, territory flag refresh, idle mode, session timers, infected and animal caps, food decay. Its validator checks the cross-file pairs against `cfgspawnabletypes.xml`, `db/types.xml` and `env/zombie_territories.xml`. |
 | `dayz-mapgroups` | `mapgroupproto.xml` and `mapgrouppos.xml`: where loot may sit inside a building type, how much fits, which buildings on the map are lootable, usage routing, fixed placement via `<dispatch>`/`<proxy>`, custom POIs and loot concentration, disabling loot at one location, loot-point thinning for performance. Its validator resolves pos against proto case-insensitively, checks the vocabulary against `cfglimitsdefinition.xml`, requires a `db/types.xml` registration for every proxy type, and notes usages carrying `nominal` that these files give no capacity — as information, since `areaflags.map` routes loot too. |
@@ -79,6 +80,7 @@ python3 skills/dayz-cfggameplay/scripts/validate.py /path/to/mission/cfggameplay
 python3 skills/dayz-globals/scripts/validate.py     /path/to/mission/db/globals.xml
 python3 skills/dayz-types/scripts/validate.py       /path/to/mission/db/types.xml
 python3 skills/dayz-mapgroups/scripts/validate.py   /path/to/mission
+python3 skills/dayz-adm/scripts/classify.py         /path/to/adm-dir
 ```
 
 `dayz-types` also takes `--budget`, which prints total `nominal` by category —

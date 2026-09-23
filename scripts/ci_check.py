@@ -85,7 +85,9 @@ for src in sources:
         Path(str(src) + "c").unlink(missing_ok=True)
 
 print("\nvalidators run")
-for validator in sorted((ROOT / "skills").glob("*/scripts/validate.py")):
+# Every skill script, not only validate.py: dayz-adm ships classify.py, and a
+# script that fell out of this loop would lose its only regression check.
+for validator in sorted((ROOT / "skills").glob("*/scripts/*.py")):
     proc = subprocess.run([sys.executable, str(validator), "--help"],
                           capture_output=True, text=True)
     check(f"--help: {validator.relative_to(ROOT)}", proc.returncode == 0,
